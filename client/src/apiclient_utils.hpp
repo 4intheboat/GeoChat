@@ -15,16 +15,18 @@ static std::string help =
 "   HELP\n"
 "   LOGIN <user> <pass>\n"
 "   REGISTER <user> <pass>\n"
-"   REGISTER_G <group>\n"
+//"   REGISTER_G <group>\n"
 "   CHAT_WITH <user>\n"
-"   ADD_TO_G <user> <group>\n"
+"   CHAT_WITH_LOCATION <location>\n"
+"   GET_LOCATIONS\n"
+//"   ADD_TO_G <user> <group>\n"
 "   UNCHAT\n"
 "   HISTORY <user> [N]\n"
-"   HISTORY_G <group> [N]\n"
+//"   HISTORY_G <group> [N]\n"
 "   DIRECT_MSG <user> <msg>\n"
-"   DIRECT_MSG_G <group> <msg>\n"
+//"   DIRECT_MSG_G <group> <msg>\n"
 "   STATUS <user>\n"
-"   STATUS_G <group>\n"
+//"   STATUS_G <group>\n"
 "   QUIT\n";
 
 enum class cmd_t : uint8_t
@@ -34,15 +36,17 @@ enum class cmd_t : uint8_t
     UNCHAT,
     LOGIN,
     REGISTER_USER,
-    REGISTER_GROUP,
-    CHAT_WITH_USER,
+    REGISTER_GROUP, //will be deleted
+    CHAT_WITH_USER, 
+    GET_LOCATIONS, //new
+    CHAT_WITH_LOCATION, //new
     ADD_TO_GROUP,
     HISTORY_USER,
-    HISTORY_GROUP,
+    HISTORY_GROUP, //delete
     DIRECT_MSG_USER,
-    DIRECT_MSG_GROUP,
+    DIRECT_MSG_GROUP, // delete
     STATUS_USER,
-    STATUS_GROUP,
+    STATUS_GROUP, //delete
     QUIT
 };
 
@@ -91,6 +95,11 @@ struct args_t
     {
         std::string name;
     } status;
+    
+    struct location // new
+    {
+        std::string location;
+    } location;
 };
 
 args_t parse(const std::string &string);
@@ -142,6 +151,11 @@ std::string build_groups_msg_body(uint64_t from,
                                   const std::string &username,
                                   const std::string &message,
                                   const std::string &pass);
-
-
+//new
+std::string build_location_body(uint64_t from, 
+                                const std::string &name, 
+                                const std::string &pass);
+std::string build_get_locations_body(uint64_t from, 
+                                const std::string &client_ip,
+                                const std::string &pass);
 }  // namespace cli_utils

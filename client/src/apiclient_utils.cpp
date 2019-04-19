@@ -37,6 +37,8 @@ std::string cmd2string(cmd_t cmd)
         case cmd_t::STATUS_GROUP:      return "STATUS_G";
         case cmd_t::QUIT:              return "QUIT";
         case cmd_t::NONE:              return "none";
+        case cmd_t::GET_LOCATIONS:     return "GET_LOCATIONS";
+        case cmd_t::CHAT_WITH_LOCATION:return "CHAT_WITH_LOCATION";     
     }
     return "";
 }
@@ -81,6 +83,11 @@ args_t parse(const std::string &string)
         ret.cmd = cmd_t::UNCHAT;
         return ret;
     }
+    if (cmd == "get_locations") //new
+    {
+        ret.cmd = cmd_t::GET_LOCATIONS;
+        return ret;
+    }
 
     if (parts.size() < 2)
     {
@@ -90,6 +97,12 @@ args_t parse(const std::string &string)
     {
         ret.cmd = cmd_t::CHAT_WITH_USER;
         ret.chat.name = parts[1];
+        return ret;
+    }
+    if (cmd == "chat_with_location") // new
+    {
+        ret.cmd = cmd_t::CHAT_WITH_LOCATION;
+        ret.location.location = parts[1];
         return ret;
     }
     if (cmd == "register_g")
@@ -340,6 +353,7 @@ std::string build_user_history_msg_body(uint64_t from, const std::string &name, 
 
 }
 
+
 std::string build_user_pass_body(const std::string &user, const std::string &pass)
 {
     rapidjson::StringBuffer buffer;
@@ -423,7 +437,49 @@ std::string build_groups_msg_body(uint64_t from,
     return std::string(buffer.GetString(), buffer.GetSize());
 }
 
+// NEW
+std::string build_get_locations_body(uint64_t from, 
+                                const std::string &client_ip,
+                                const std::string &pass)
+{
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
 
+    writer.Key("uid");
+    writer.Uint64(from);
+
+    writer.Key("client_ip");
+    writer.String(client_ip.c_str());
+    
+    writer.Key("password");
+    writer.String(pass.c_str());
+
+    writer.EndObject();
+    return std::string(buffer.GetString(), buffer.GetSize());
+}
+    
+std::string build_location_body(uint64_t from, 
+                                const std::string &country,
+                                const std::string &pass)
+{
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+
+    writer.Key("uid");
+    writer.Uint64(from);
+
+    writer.Key("country");
+    writer.String(country.c_str());
+    
+    writer.Key("password");
+    writer.String(pass.c_str());
+
+    writer.EndObject();
+    return std::string(buffer.GetString(), buffer.GetSize());
+}
+    
 }  // namespace cli_utils
 
 

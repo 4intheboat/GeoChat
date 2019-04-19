@@ -171,6 +171,23 @@ void Client::onUserInput(Event &&event)
                                                     "application/json", body);
         sendRequest(input::cmd_t::DIRECT_MSG_GROUP, req);
     }
+    else if (args.cmd == input::cmd_t::CHAT_WITH_LOCATION)
+    {
+        //std::string build_location_body(uint64_t from, const std::string &name);
+        
+        std::string body = cli_utils::build_location_body(m_SelfId, args.location.location, m_Password);
+        std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::CHAT_WITH_LOCATION),
+                                                    "application/json", body);
+        sendRequest(input::cmd_t::CHAT_WITH_LOCATION, req);
+    }
+    else if (args.cmd == input::cmd_t::GET_LOCATIONS)
+    {
+        std::string client_ip = "192.168.1.9";
+        std::string body = cli_utils::build_location_body(m_SelfId, client_ip, m_Password);
+        std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::GET_LOCATIONS),
+                                                    "application/json", body);
+        sendRequest(input::cmd_t::GET_LOCATIONS, req);  
+    }
     else
     {
         m_Ui->showMsg("unsupported command");
