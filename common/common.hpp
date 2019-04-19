@@ -22,6 +22,9 @@ enum class cmd_t : uint16_t
     MESSAGE_RECENT,
     IDLE,
 
+    GET_LOCATIONS,
+    CHAT_WITH_LOCATION,
+
     CMD_LAST
 };
 
@@ -41,6 +44,8 @@ inline std::string cmd2string(common::cmd_t cmd)
         case cmd_t::CHAT_ADDUSER:        return "/v1/chat/adduser";
         case cmd_t::MESSAGE_RECENT:      return "/v1/message/recent";
         case cmd_t::IDLE:                return "/v1/idle";
+        case cmd_t::GET_LOCATIONS:       return "/v1/locations";
+        case cmd_t::CHAT_WITH_LOCATION:   return "v1/locations/users";
         case cmd_t::CMD_LAST:            return "undefined_cmd";
     };
     return "undefined_cmd";

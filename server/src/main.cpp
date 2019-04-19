@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 
     try
     {
-        Server s(opt->get<int>("port"), opt->get<int>("io_workers"));
+        Server s(opt->get<int>("port"), opt->get<int>("io_workers"), opt->get<std::string>("sert"));
 
         drop_privileges(opt->get<std::string>("run_as"));
         s.run();
