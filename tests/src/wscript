@@ -75,5 +75,5 @@ def build(ctx):
     ctx.program(
             target       = APPNAME,
             use          = 'API',
-            source       = ['main.cpp','../../client/src/apiclient_utils.cpp'] + common_source,
+            source       = ['client_tests.cpp','../../client/src/apiclient_utils.cpp'] + common_source,
     )

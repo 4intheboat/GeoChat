@@ -1,90 +1,10 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-/*#include <unistd.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-#include <sys/resource.h>
-
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
-
-#include "libproperty/src/libproperty.hpp"
-
-#include <boost/make_shared.hpp>
-
-#include <chrono>
-#include <queue>
-#include <thread>
-#include <vector>
-#include <mutex>
-#include <string>
-
-#include <boost/optional.hpp>
-
-
-#include "common/utils.hpp"
-#include "common/sysutils.hpp"
-#include "common/lock_queue.hpp"
-//#include "../../client/src/client.hpp"
-#include "../../client/src/event_worker.hpp"
-#include "../../client/src/ui.hpp"*/
-
 #include "../../client/src/apiclient_utils.hpp"
-
-
 
 using namespace input;
 
-//#include "o2logger/src/o2logger.hpp"
-
-#define OK 0
-/*
-struct args_t
-{
-    cmd_t cmd = cmd_t::NONE;
-
-    struct login
-    {
-        std::string name;
-        std::string pass;
-    } login;
-
-    struct reg
-    {
-        std::string name;
-        std::string pass;
-    } reg;
-
-    struct chat
-    {
-        std::string name;
-    } chat;
-
-    struct group
-    {
-        std::string groupname;
-        std::string username;
-    } group;
-
-    struct history
-    {
-        std::string name;
-        size_t count = 10;
-    } history;
-
-    struct direct
-    {
-        std::string name;
-        std::string message;
-    } direct;
-
-    struct status
-    {
-        std::string name;
-    } status;
-};*/
 
 TEST_CASE("test parse", "[init]")
 {
@@ -204,18 +124,6 @@ TEST_CASE("test parse", "[init]")
         REQUIRE(real_answ.cmd == answer.cmd);
     }
 }
-
-/*TEST_CASE("test get_msg_after_command", "[input]"){
-    std::string answer;
-    std::string line;
-    
-    {
-        answer = "blablabla";
-        line = "direct_msg name blablabla";
-        std::string real_answ = get_msg_after_command(line);
-        REQUIRE(real_answ == answer);
-    }
-}*/
 
 using namespace cli_utils;
 
@@ -348,14 +256,3 @@ TEST_CASE("test build_user_history_msg_body","[cli_utils]")
     }
     
 }
-/*TEST_CASE("test build_user_history_msg_body","[cli_utils]")
-{
-    uint64_t from;
-    std::string groupname;                           
-    std::string usernam;
-    std::string message;
-    std::string pass;
-    std::string answer;
-    
-    
-}*/
