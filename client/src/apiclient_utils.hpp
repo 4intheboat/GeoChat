@@ -104,46 +104,46 @@ struct args_t
 
 args_t parse(const std::string &string);
 
-
 }   // namespace input
 
 
-namespace cli_utils {
+namespace cli_utils
+{
 
-    struct response_t {
-        uint64_t uid = 0;
-        uint64_t chatid = 0;
-        uint64_t heartbit = 0;
-        uint64_t server_ts = 0;
-    };
+struct response_t
+{
+    uint64_t uid       = 0;
+    uint64_t chatid    = 0;
+    uint64_t heartbit  = 0;
+    uint64_t server_ts = 0;
+};
 
-    struct msg_response_t {
-        uint64_t ts = 0;
-        std::string from;
-        std::string to;
-        std::string msg;
-    };
+struct msg_response_t
+{
+    uint64_t ts     = 0;
+    std::string from;
+    std::string to;
+    std::string msg;
+};
 
 
-    std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, response_t &response);
+std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, response_t &response);
+std::string parse_msg_response(input::cmd_t cmd, const std::string &json, std::vector<msg_response_t> &response);
 
-    std::string parse_msg_response(input::cmd_t cmd, const std::string &json, std::vector <msg_response_t> &response);
+std::string build_request(const std::string &resource,
+                          const std::string &content_type,
+                          const std::string &body);
 
-    std::string build_request(const std::string &resource,
-                              const std::string &content_type,
-                              const std::string &body);
+std::string build_user_pass_body(const std::string &user,
+                                 const std::string &pass);
 
-    std::string build_user_pass_body(const std::string &user,
+std::string build_user_send_msg_body(uint64_t from,
+                                     uint64_t ts,
+                                     const std::string &to,
+                                     const std::string &msg,
                                      const std::string &pass);
 
-    std::string build_user_send_msg_body(uint64_t from,
-                                         uint64_t ts,
-                                         const std::string &to,
-                                         const std::string &msg,
-                                         const std::string &pass);
-
-    std::string
-    build_user_history_msg_body(uint64_t from, const std::string &name, uint64_t count, const std::string &pass);
+std::string build_user_history_msg_body(uint64_t from, const std::string &name, uint64_t count, const std::string &pass);
 
 
 std::string build_groups_msg_body(uint64_t from,
@@ -158,5 +158,4 @@ std::string build_location_body(uint64_t from,
 std::string build_get_locations_body(uint64_t from, 
                                 const std::string &client_ip,
                                 const std::string &pass);
-
 }  // namespace cli_utils

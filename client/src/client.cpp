@@ -149,7 +149,7 @@ void Client::onUserInput(Event &&event) {
     else if (args.cmd == input::cmd_t::GET_LOCATIONS)
     {
         std::string client_ip = "192.168.1.9";
-        std::string body = cli_utils::build_location_body(m_SelfId, client_ip, m_Password);
+        std::string body = cli_utils::build_get_locations_body(m_SelfId, client_ip, m_Password);
         std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::GET_LOCATIONS),
                                                     "application/json", body);
         sendRequest(input::cmd_t::GET_LOCATIONS, req);  
