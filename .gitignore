@@ -4,7 +4,8 @@
 
 ### C ###
 
-*/.waf*/*
+*/*waf*/*
+*/BUILD/*
 # Prerequisites
 *.d
 
