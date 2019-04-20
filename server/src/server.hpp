@@ -11,7 +11,7 @@
 class Server: private boost::noncopyable
 {
 public:
-    Server(int port, int io_thread_pool_size);
+    Server(int port, int io_thread_pool_size, std::string sert);
     ~Server();
 
     void run();
@@ -25,7 +25,7 @@ private:
 
 private:
     int m_IoPoolSize;
-
+    std::string m_Sert;
     std::unique_ptr<IoThread> m_MainIo;
     std::vector<std::unique_ptr<IoThread>> m_IoThreads;
 

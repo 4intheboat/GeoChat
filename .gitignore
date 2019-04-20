@@ -3,6 +3,8 @@
 # Edit at https://www.gitignore.io/?templates=c,c++,clion
 
 ### C ###
+
+*/.waf*/*
 # Prerequisites
 *.d
 
@@ -97,6 +99,7 @@ dkms.conf
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
+.idea/*
 
 # Gradle
 .idea/**/gradle.xml

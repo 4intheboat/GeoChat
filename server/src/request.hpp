@@ -22,6 +22,7 @@ struct RequestDetails
         std::string user;           // lookup user by name
         std::string password;
 
+
         struct chat
         {
             std::string name;
