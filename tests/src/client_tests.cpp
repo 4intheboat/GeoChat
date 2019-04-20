@@ -167,7 +167,7 @@ TEST_CASE("test build request","[cli_utils]")
         resource = "resourse";
         content_type = "content_type";
         body = "body";
-        answer = "POST resourse HTTP/1.1\nContent-Length: 4\nContent-Type: content_type\n\nbody";
+        answer = "POST resourse HTTP/1.1\r\nContent-Length: 4\r\nContent-Type: content_type\r\n\r\nbody";
         std::string real_answ = build_request(resource, content_type, body);
         REQUIRE(real_answ == answer);
     }
