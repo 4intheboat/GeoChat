@@ -2,9 +2,10 @@
 #include <zlib.h>
 #include <mutex>
 
-#include "net/client.hpp"
-#include "net/sync_connect.hpp"
-#include "common/utils.hpp"
+#include "client.hpp"
+#include "sync_connect.hpp"
+#include "../common/utils.hpp"
+#include <iostream>
 
 #include "o2logger/src/o2logger.hpp"
 using namespace o2logger; // NOLINT
@@ -12,22 +13,30 @@ using namespace o2logger; // NOLINT
 
 std::vector<boost::asio::ip::tcp::endpoint> resolve(const std::string& host, int port)
 {
+    loge("we are in resolve");
     boost::asio::io_service io_service;
+    loge("io servise");
     boost::asio::ip::tcp::resolver resolver(io_service);
+    loge(" resolver");
 
-    boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), host, std::to_string(port));    // IPv4 only
+    std::cout << port << host<< std::endl;
+    boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), host, std::to_string(port)); // IPv4 only
+    loge("query");
     boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+    loge("iterator");
 
     std::vector<boost::asio::ip::tcp::endpoint> valid_domains;
 
+    loge("we created all");
     int ips_found = 0;
     for ( ; iterator != boost::asio::ip::tcp::resolver::iterator(); ++iterator)
     {
         ++ips_found;
         valid_domains.push_back(iterator->endpoint());
     }
+    loge("we did iterations");
     std::random_shuffle(valid_domains.begin(), valid_domains.end());
-
+    loge("did something");
     if (valid_domains.empty() && ips_found != 0)
     {
         throw std::runtime_error("connect failed : all resolved IPs are blacklisted");
@@ -631,12 +640,14 @@ AsyncHttpClient::~AsyncHttpClient()
 void AsyncHttpClient::asyncConnect(const std::string &host, uint32_t port, std::function<void(const ConnectionError &err)> handler)
 {
     std::vector<boost::asio::ip::tcp::endpoint> hosts;
+    loge("asyncConnect");
     try
     {
         hosts = ::resolve(host, port);
     }
     catch (const std::exception& e)
     {
+        loge("error founded");
         ConnectionError error(boost::asio::error::no_recovery);
         handler(error);
         return;

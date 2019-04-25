@@ -5,15 +5,31 @@
 #include "apiclient.hpp"
 #include "apiclient_utils.hpp"
 #include "database_worker.hpp"
-#include "common/common.hpp"
+#include "../../common/common.hpp"
 #include "location.h"
+#include <stdio.h>
+#include <iostream>
 
 
 extern std::atomic<bool> g_NeedStop;
 
 
-DatabaseWorker::DatabaseWorker(db::type_t type, size_t workers) :
-        m_Workers(workers) {
+DatabaseWorker::DatabaseWorker(db::type_t type,  size_t workers, std::string m_Host, int m_Port):
+        m_Workers(workers),
+        m_IoThread(std::make_unique<IoThread>("")),
+        m_Timeout(m_IoThread->ioService()),
+        m_Host(m_Host),
+        m_Port(m_Port),
+        m_User(DB_USER_NAME),
+        m_Password(DB_PASSWORD),
+        m_DBname(DB_NAME)
+{
+    f::loge("databaseworker constructor");
+    loge("blablalba");
+    m_Ssl = true;
+    m_Http = createConnect(m_Ssl);
+    m_HttpIdle = createConnect(m_Ssl);
+    m_TimedOut = false;
     if (type == db::type_t::MEMORY) {
         m_Db = std::unique_ptr<AbstractDatabase>(new InMemoryDataBase());
     } else {
@@ -326,10 +342,109 @@ void DatabaseWorker::processQueue() {
     }
 }
 
+boost::shared_ptr <AsyncHttpClient> DatabaseWorker::createConnect(bool use_ssl) {
+    boost::shared_ptr <TcpClient> socket;
+    if (use_ssl) {
+        socket = boost::make_shared<TcpClient>(m_IoThread->ioService(), true, /*timeout*/ 10);
+    } else {
+        socket = boost::make_shared<TcpClient>(m_IoThread->ioService(), false, /*timeout*/ 10);
+    }
+    return boost::make_shared<AsyncHttpClient>(socket);
+}
 
 void DatabaseWorker::run() {
+
+    std::cout << "we are in run\n";
+    m_Http->asyncConnect(m_Host, m_Port,
+                         boost::bind(&DatabaseWorker::onHttpConnect, this, boost::asio::placeholders::error));
+
+    // TODO: timeouts :(
+    std::cout << "we are after connect\n";
+    return;
+    m_Timeout.expires_from_now(std::chrono::milliseconds(5000));
+    m_Timeout.async_wait([this](auto ec) {
+        if (!ec) {
+            m_TimedOut = true;
+            this->m_Http->cancel();
+        }
+    });
+
     for (size_t i = 0; i < m_Workers; ++i) {
         m_Threads.push_back(std::thread(std::bind(&DatabaseWorker::processQueue, this)));
+    }
+}
+
+void DatabaseWorker::onHttpConnect(const ConnectionError &e) {
+
+    printf("we are in on http connect\n");
+    if (e.code) {
+        f::loge("http connect error [host: {0}:{1}, e: {2}] ", m_Host, m_Port, e.code.message());
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        m_Http->asyncConnect(m_Host, m_Port,
+                             boost::bind(&DatabaseWorker::onHttpConnect, this, boost::asio::placeholders::error));
+        return;
+    }
+
+    //m_Ui->showMsg("connected to server: " + m_Host + ":" + std::to_string(m_Port));
+
+    if (!m_User.empty() && !m_Password.empty()) {
+        std::string body = cli_utils::build_user_pass_body(m_User, m_Password);
+        std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::USER_LOGIN),
+                                                   "application/json", body);
+        sendRequest(input::cmd_t::LOGIN, req);
+    }
+}
+
+void DatabaseWorker::sendRequest(input::cmd_t cmd, const std::string &req) {
+    printf("we are in send request\n");
+    m_LastCmd = cmd;
+    m_Http->asyncRequest(req, [this](const ConnectionError &error) {
+        onHttpWrite(error);
+    });
+}
+
+void DatabaseWorker::onHttpWrite(const ConnectionError &error) {
+    printf("we are in on http write\n");
+    if (error.code) {
+        m_Timeout.cancel();
+        loge("http request error: ", error.asString());
+        return;
+    }
+
+    m_Http->asyncResponse(
+            [this](const ConnectionError &error, const HttpReply &reply) {
+                onHttpRead(error, reply);
+            });
+}
+
+void DatabaseWorker::onHttpRead(const ConnectionError &error, const HttpReply &reply) {
+    printf("we are in on http read\n");
+    m_Timeout.cancel();
+
+    if (error.code) {
+        f::loge("http read [e: {0}]", error.asString());
+        m_Http = createConnect(m_Ssl);
+        m_Http->asyncConnect(m_Host, m_Port,
+                             boost::bind(&DatabaseWorker::onHttpConnect, this, boost::asio::placeholders::error));
+        return;
+    }
+
+    if (reply._status != 200) {
+        //->showMsg(std::to_string(reply._status));
+        //m_Ui->showMsg(reply._body);
+        return;
+    }
+
+    logd2("reply: ", reply._body);
+    //m_Ui->showMsg("200 OK");
+
+    if (m_LastCmd == input::cmd_t::LOGIN) {
+
+    } else if (m_LastCmd == input::cmd_t::DIRECT_MSG_USER) {
+    } else if (m_LastCmd == input::cmd_t::HISTORY_USER) {
+
+    } else if (m_LastCmd == input::cmd_t::STATUS_USER) {
     }
 }
 

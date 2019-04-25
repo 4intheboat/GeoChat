@@ -24,6 +24,8 @@
 
 using namespace o2logger;
 
+#define LOCAL_HOST "localhost"
+#define LOCAL_PORT 9001
 
 std::atomic<bool> g_NeedStop(false);
 
@@ -35,7 +37,9 @@ Server::Server(int port, int io_thread_pool_size, std::string sert) :
         m_Signals(m_MainIo->ioService()),
         m_HupSignals(m_MainIo->ioService()),
         m_Acceptor(m_MainIo->ioService()),
-        m_Db(db::type_t::MEMORY, 5) {
+        m_Db(db::type_t::MEMORY, 5, LOCAL_HOST, LOCAL_PORT)
+{
+    loge("we are in constructor");
     m_Signals.add(SIGINT);
     m_Signals.add(SIGTERM);
     m_Signals.add(SIGQUIT);

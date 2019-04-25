@@ -64,7 +64,9 @@ int main(int argc, char *argv[])
 
     try
     {
+        loge("try to create server");
         Server s(opt->get<int>("port"), opt->get<int>("io_workers"), opt->get<std::string>("sert"));
+        loge("server created");
 
         drop_privileges(opt->get<std::string>("run_as"));
         s.run();
