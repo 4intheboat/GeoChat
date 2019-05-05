@@ -35,7 +35,8 @@ def configure(ctx):
     ]
 
     ctx.env.LIB_API_EXTERNAL += ['boost_system']
-    ctx.env.LIB_API_EXTERNAL += ['z', 'crypto', 'ssl', 'pthread', 'rt']
+    ctx.env.LIB_API_EXTERNAL += ['z', 'crypto', 'ssl', 'pthread', 'rt', 'mysqlclient',
+                                 'm', 'atomic', 'dl']
 
     link_flags = [
         '-fdata-sections', '-ffunction-sections', '-Wl,--gc-sections', '-ggdb3',
@@ -59,6 +60,7 @@ def configure(ctx):
     ctx.env.INCLUDES_API = [ctx.path.find_dir('.').abspath(), '../../']
     ctx.env.INCLUDES_API += ['../../third_party/rapidjson-1.0.2/include/']
     ctx.env.INCLUDES_API += ['../../third_party/']
+    ctx.env.INCLUDES_API += ['/usr/include/mysql']
     ctx.env.LIBPATH_API = ctx.env.LIBPATH_API_EXTERNAL
     ctx.env.LINKFLAGS_API = link_flags
     ctx.env.CFLAGS_API    = cflags
@@ -76,6 +78,6 @@ def build(ctx):
             target       = APPNAME,
             use          = 'API',
             source       = ['main.cpp', 'server.cpp', 'apiclient.cpp', 'database_worker.cpp',
-                            'database.cpp', 'inmemory_dbconn.cpp',
+                            'database.cpp', 'inmemory_dbconn.cpp', 'mysql_connection.cpp',
                             'apiclient_utils.cpp', ] + common_source,
     )

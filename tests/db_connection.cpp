@@ -29,7 +29,7 @@ TEST_CASE("Users are created", "[createUser]") {
         db::User createdUser1 = conn->createUser("John", "q1w2e3W!098", "");
         db::User expectedUser1(1, 1, "John", "q1w2e3W!098", "");
         db::User createdUser2 = conn->createUser("Kitty", "asqwerU!098", "");
-        db::User expectedUser2(2, 2, "John", "asqwerU!098", "");
+        db::User expectedUser2(2, 2, "Kitty", "asqwerU!098", "");
 
         REQUIRE(usersEqual(createdUser1, expectedUser1));
         REQUIRE(usersEqual(createdUser2, expectedUser2));

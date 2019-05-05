@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <mysql/mysql.h>
 
 #include "request.hpp"
 #include "common/common.hpp"
@@ -172,10 +173,11 @@ private:
 class MysqlConnection : public AbstractConnection
 {
 public:
-    MysqlConnection() {}
+    MysqlConnection();
+    ~MysqlConnection();
 
     void updateUserHeartBit(const db::User &, uint64_t ) override {}
-    db::User createUser(const std::string &, const std::string &, const std::string &) override { return {}; }
+    db::User createUser(const std::string &, const std::string &, const std::string &) override;
     db::Chat createChat(const std::string &, uint64_t ) override { return {}; }
 
     std::vector<db::User> lookupUserByName(const std::string &) const override { return {}; }
@@ -192,6 +194,8 @@ public:
     std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&, const db::get_msg_opt_t &) const override { return {}; }
 
 private:
+    static MYSQL* m_Connection;
+    static std::mutex m_Mutex;
 };
 
  
