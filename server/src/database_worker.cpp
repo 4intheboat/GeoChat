@@ -360,9 +360,9 @@ void DatabaseWorker::run() {
 
     // TODO: timeouts :(
     std::cout << "we are after connect\n";
-    return;
     m_Timeout.expires_from_now(std::chrono::milliseconds(5000));
     m_Timeout.async_wait([this](auto ec) {
+        std::cout << "Timer expired\n";
         if (!ec) {
             m_TimedOut = true;
             this->m_Http->cancel();
@@ -372,6 +372,11 @@ void DatabaseWorker::run() {
     for (size_t i = 0; i < m_Workers; ++i) {
         m_Threads.push_back(std::thread(std::bind(&DatabaseWorker::processQueue, this)));
     }
+
+    m_IoThread->start();
+    //m_Ui->join();
+    //m_EvWorker.join();
+    m_IoThread->join();
 }
 
 void DatabaseWorker::onHttpConnect(const ConnectionError &e) {

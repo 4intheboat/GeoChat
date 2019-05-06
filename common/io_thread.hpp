@@ -27,7 +27,7 @@ public:
 
     boost::asio::io_service &ioService()
     {
-        loge("require to specify sert file");
+        loge("ioservise");
         return m_IoService;
     }
 
