@@ -1,0 +1,6 @@
+third_party/rapidjson-1.0.2/include/rapidjson
+third_party/rapidjson-1.0.2/include/rapidjson/error
+third_party/rapidjson-1.0.2/include/rapidjson/internal
+third_party/rapidjson-1.0.2/include/rapidjson/msinttypes
+third_party/rapidjson-1.0.2/test/perftest
+third_party/rapidjson-1.0.2/test/unittest

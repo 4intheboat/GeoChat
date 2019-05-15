@@ -174,10 +174,12 @@ void Client::onUserInput(Event &&event)
     else if (args.cmd == input::cmd_t::CHAT_WITH_LOCATION)
     {
         //std::string build_location_body(uint64_t from, const std::string &name);
-        
+        //loge("start building");
         std::string body = cli_utils::build_location_body(m_SelfId, args.location.location, m_Password);
         std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::CHAT_WITH_LOCATION),
                                                     "application/json", body);
+        //loge(body);
+        //loge(req);
         sendRequest(input::cmd_t::CHAT_WITH_LOCATION, req);
     }
     else if (args.cmd == input::cmd_t::GET_LOCATIONS)
@@ -186,6 +188,8 @@ void Client::onUserInput(Event &&event)
         std::string body = cli_utils::build_location_body(m_SelfId, client_ip, m_Password);
         std::string req = cli_utils::build_request(common::cmd2string(common::cmd_t::GET_LOCATIONS),
                                                     "application/json", body);
+        //loge(body);
+        //loge(req);
         sendRequest(input::cmd_t::GET_LOCATIONS, req);  
     }
     else

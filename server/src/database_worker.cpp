@@ -364,6 +364,18 @@ void DatabaseWorker::processQueue()
 
             task.client->sendOkResponse("{\"status\": 0}");
         }
+        else if (task.cmd == common::cmd_t::GET_LOCATIONS)
+        {
+            loge("get locations");
+            // дальше код
+            task.client->sendOkResponse("{\"status\": 0}");
+        }
+        else if (task.cmd == common::cmd_t::CHAT_WITH_LOCATION)
+        {
+            loge("chat_with_location");
+            // дальше код
+            task.client->sendOkResponse("{\"status\": 0}");
+        }
     }
 }
 

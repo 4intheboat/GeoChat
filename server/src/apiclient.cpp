@@ -270,6 +270,16 @@ std::string parse_meta(RequestDetails &details,
         }
         return "";
     }
+    if (command == common::cmd_t::GET_LOCATIONS)
+    {
+        loge("parse meta get_locations");
+        //дальше код для гет локейшнс, разбор параметров и все такое
+    }
+    if (command == common::cmd_t::CHAT_WITH_LOCATION)
+    {
+        loge("parse meta chat_with_location");
+        //дальше код
+    }
 
     return "";
 }
@@ -526,6 +536,7 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
 
     logd3(reply._headers);
     logd4("body: ", reply._body);
+    loge("we here trying to check resourse");
 
     if (m_RequestDetails.resource == "/v1/idle")
     {
@@ -577,6 +588,14 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     else if (m_RequestDetails.resource == "/v1/chat/adduser")
     {
         v1_handler(reply, common::cmd_t::CHAT_ADDUSER);
+    }
+    else if (m_RequestDetails.resource == "/v1/locations")
+    {
+        v1_handler(reply, common::cmd_t::GET_LOCATIONS);
+    }
+    else if (m_RequestDetails.resource == "/v1/locations/users")
+    {
+        v1_handler(reply, common::cmd_t::CHAT_WITH_LOCATION);
     }
     else
     {
