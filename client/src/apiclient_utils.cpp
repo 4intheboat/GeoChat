@@ -1,6 +1,6 @@
 #include "apiclient_utils.hpp"
 
-#include <rapidjson/document.h>
+#include </home/nastya/Technopark/new_try/GeoChat/third_party/rapidjson-1.0.2/include/rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
@@ -286,6 +286,7 @@ std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, resp
 {
     unused_args(cmd);
 
+
     rapidjson::Document document;
     if (document.Parse(json.data()).HasParseError())
     {
@@ -319,6 +320,105 @@ std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, resp
 
     return "";
 }
+
+std::string parse_location_response(input::cmd_t cmd, const std::string &json, loc_response_t &response)
+{
+    unused_args(cmd);
+
+    rapidjson::Document document;
+    if (document.Parse(json.data()).HasParseError())
+    {
+        std::string response = "bad request, invalid json";
+        return response;
+    }
+    auto it = document.FindMember("server_ts");
+    if (it != document.MemberEnd())
+    {
+        response.server_ts = it->value.GetUint64();
+    }
+
+    it = document.FindMember("locations");
+    if (it != document.MemberEnd())
+    {
+        rapidjson::Value &locations = document["locations"];
+        if (locations.IsArray())
+        {
+            for (auto i  = 0; i < locations.Size(); i++)
+            {
+                if (locations[i].IsObject())
+                {
+                    auto it = locations[i].FindMember("location");
+                    if (it != locations[i].MemberEnd())
+                    {
+                        response.locations.push_back(it->value.GetString());
+                    }
+                    it = locations[i].FindMember("status");
+                    if (it != locations[i].MemberEnd())
+                    {
+                        response.status.push_back(it->value.GetBool());
+                    }
+                }
+            }
+        }
+
+    }
+
+    return "";
+}
+
+std::string parse_chat_loc_response(input::cmd_t cmd, const std::string &json, chat_loc_response_t &response)
+{
+    unused_args(cmd);
+
+    rapidjson::Document document;
+    if (document.Parse(json.data()).HasParseError())
+    {
+        std::string response = "bad request, invalid json";
+        return response;
+    }
+    auto it = document.FindMember("server_ts");
+    if (it != document.MemberEnd())
+    {
+        response.server_ts = it->value.GetUint64();
+    }
+
+    it = document.FindMember("users");
+    if (it != document.MemberEnd())
+    {
+        rapidjson::Value &users= document["users"];
+        if (users.IsArray())
+        {
+            for (auto i  = 0; i < users.Size(); i++)
+            {
+                if (users[i].IsObject())
+                {
+                    auto it = users[i].FindMember("id");
+                    resp_user_t user;
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.uid = it->value.GetUint64();
+                    }
+                    it = users[i].FindMember("status");
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.status = it->value.GetBool();
+                    }
+                    it = users[i].FindMember("username");
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.username = it->value.GetString();
+                    }
+                    response.users.push_back(user);
+
+                }
+            }
+        }
+
+    }
+
+    return "";
+}
+
 
 std::string build_request(const std::string &resource, const std::string &content_type, const std::string &body)
 {

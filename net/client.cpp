@@ -469,7 +469,7 @@ void BasicTcpClient::makeConnected(boost::system::error_code &ec)
     }
 
     m_RemoteAddr = addressToString(remote_endpoint, ec);
-    loge(m_RemoteAddr);
+    //loge(m_RemoteAddr);
 
     if (ec)
     {
@@ -484,7 +484,7 @@ void BasicTcpClient::makeConnected(boost::system::error_code &ec)
     }
 
     m_LocalAddr = addressToString(local_endpoint, ec);
-    loge(m_LocalAddr);
+    //loge(m_LocalAddr);
 }
 
 

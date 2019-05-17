@@ -126,9 +126,30 @@ struct msg_response_t
     std::string msg;
 };
 
+struct loc_response_t
+{
+    uint64_t server_ts = 0;
+    std::vector<std::string> locations;
+    std::vector<bool> status;
+};
+
+struct resp_user_t
+{
+     uint64_t uid       = 0;
+     std::string username;
+     bool status;
+};
+
+struct chat_loc_response_t
+{
+    uint64_t server_ts = 0;
+    std::vector<resp_user_t> users;
+};
 
 std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, response_t &response);
 std::string parse_msg_response(input::cmd_t cmd, const std::string &json, std::vector<msg_response_t> &response);
+std::string parse_location_response(input::cmd_t cmd, const std::string &json, loc_response_t &response);
+std::string parse_chat_loc_response(input::cmd_t cmd, const std::string &json, chat_loc_response_t &response);
 
 std::string build_request(const std::string &resource,
                           const std::string &content_type,
