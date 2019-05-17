@@ -24,6 +24,8 @@ struct RequestDetails
 
         std::string country; //location
 
+        std::string ip_adress;
+
         struct chat
         {
             std::string name;

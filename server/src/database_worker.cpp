@@ -368,8 +368,8 @@ void DatabaseWorker::processQueue()
         {
             loge("get locations");
             // дальше код
-            // айпи лежит в request_details remote_adress(request.hpp). Чтобы его достать вероятно нужно добавить его хранение в Task
-            // или можно хранить в  request.params(иди в apiclient.cpp parse_meta)
+            // (если нужно что-то поменять иди в apiclient.cpp parse_meta)
+            // доступ к айпи: task.request.ip_adress;
 
             task.client->sendOkResponse("{\"status\": 0}");
         }
@@ -377,7 +377,7 @@ void DatabaseWorker::processQueue()
         {
             loge("chat_with_location");
             // дальше код
-            // ваша страна! task.request.country;
+            // наша страна! task.request.country;
             task.client->sendOkResponse("{\"status\": 0}");
         }
     }

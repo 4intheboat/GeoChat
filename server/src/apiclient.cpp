@@ -275,6 +275,7 @@ std::string parse_meta(RequestDetails &details,
         loge("parse meta get_locations");
         //дальше код для гет локейшнс, разбор параметров и все такое
         // тут ничего не надо, но возможно стоит определеить айпи!
+        details.params.ip_adress = details.remote_address;
     }
     if (command == common::cmd_t::CHAT_WITH_LOCATION)
     {
