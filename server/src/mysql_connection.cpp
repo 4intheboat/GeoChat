@@ -3,40 +3,37 @@
 #include "o2logger/src/o2logger.hpp"
 #include <iostream>
 #include <string>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/resultset.h>
 
 using namespace o2logger;
 
 
-MYSQL* MysqlConnection::m_Connection;
+sql::Driver* MysqlConnection::m_Driver = get_driver_instance();
 std::mutex MysqlConnection::m_Mutex;
 
 MysqlConnection::MysqlConnection() {
-    m_Connection = mysql_init(NULL);
-    if (!(mysql_real_connect(m_Connection, "localhost", "me", "123", "geochat", 3306, NULL, 0))) {
-        std::cout << "Error: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        mysql_close(m_Connection);
-    } else {
-        std::cout << "Connection successful!" << std::endl;
+    try {
+        m_Connection = std::unique_ptr<sql::Connection>(m_Driver->connect("localhost:3306", "me", "123"));
+        m_Connection->setSchema("geochat");
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
 }
 
-MysqlConnection::~MysqlConnection() {
-    mysql_close(m_Connection);
-}
+MysqlConnection::~MysqlConnection() {}
 
-/*void InMemoryConnection::updateUserHeartBit(const db::User &user, uint64_t ts)
-{
+void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-
-    for (auto &u : m_Storage.users)
-    {
-        if (u.id == user.id)
-        {
-            u.heartbit = ts;
-            return;
-        }
+    try {
+        std::cout << "updateUserHeartBit\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        stmt->executeUpdate("UPDATE user SET heartbit=FROM_UNIXTIME(" + std::to_string(ts) + ") WHERE id=" +
+                            std::to_string(user.id));
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
-}*/
+}
 
 /*
  * transaction start
@@ -45,259 +42,278 @@ MysqlConnection::~MysqlConnection() {
  * into chatuser ^^ user_id + chat_id !!!
  * commit
 */
-db::User MysqlConnection::createUser(const std::string &name, const std::string &pass, const std::string &stpath) {
+// TODO sql injections!!!
+db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    if (mysql_query(m_Connection, "SELECT name FROM user")) {
-        std::cout << "Error while SELECT: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        return {};
-    }
-    MYSQL_RES* result = mysql_store_result(m_Connection);
-    if (result == NULL) {
-        std::cout << "Error: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        return {};
-    }
-    MYSQL_ROW row;
-    while ((row = mysql_fetch_row(result)))
-        if (row[0] == name)
+    try {
+        std::cout << "createUser\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT 1 FROM user WHERE name='" + name + "'"));
+
+        if (res->next())
             return {};
-    mysql_free_result(result);
 
-    std::string query = "INSERT INTO chat(name) VALUES('" + name + "')";
-    if (mysql_query(m_Connection, query.c_str())) {
-        std::cout << "Error while INSERT in chat: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        return {};
-    }
-    int chat_id = mysql_insert_id(m_Connection);
-    query = "INSERT INTO user(self_chat_id, name, password, stpath, heartbit) VALUES("
-            + std::to_string(chat_id) + ", '" + name + "', '" + pass + "', '" + stpath + "', NOW())";
-    if (mysql_query(m_Connection, query.c_str())) {
-        std::cout << "Error while INSERT in user: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        return {};
-    }
-    int user_id = mysql_insert_id(m_Connection);
-    query = "INSERT INTO chatuser VALUES(" + std::to_string(user_id) + ", " + std::to_string(chat_id) + ")";
-    if (mysql_query(m_Connection, query.c_str())) {
-        std::cout << "Error while INSERT in chatuser: " << mysql_error(m_Connection) << " " << mysql_errno(m_Connection) << std::endl;
-        return {};
-    }
-    return db::User(user_id, chat_id, name, pass, stpath);
-}
-
-/*
-db::Chat InMemoryConnection::createChat(const std::string &name, uint64_t uid)
-{
-    std::lock_guard<std::mutex> lock(m_Mutex);
-
-    for (const auto &chat : m_Storage.chats)
-    {
-        if (chat.name == name)
-        {
-            return {};
-        }
-    }
-
-    uint64_t chat_id = m_Storage.chat_autoincrement++;
-
-    db::Chat chat(chat_id, name);
-    m_Storage.chats.emplace_back(chat);
-
-    if (uid > 0)
-    {
-        m_Storage.chatuser.emplace_back(db::Chatuser(chat_id, uid));
-    }
-
-    return chat;
-}
-
-std::vector<db::User> InMemoryConnection::lookupUserByName(const std::string &name) const
-{
-    std::vector<db::User> ret;
-    std::lock_guard<std::mutex> lock(m_Mutex);
-
-    for (const auto &user : m_Storage.users)
-    {
-        if (user.name == name)
-        {
-            ret.push_back(user);
-        }
-    }
-    return ret;
-}
-
-db::User InMemoryConnection::lookupUserById(uint64_t id) const
-{
-    std::lock_guard<std::mutex> lock(m_Mutex);
-    for (const auto &user : m_Storage.users)
-    {
-        if (user.id == id)
-        {
-            return user;
-        }
+        stmt->executeUpdate("INSERT INTO chat(name) VALUES('" + name + "')");
+        uint64_t chatId = getLastInsertId(stmt);
+        stmt->executeUpdate("INSERT INTO user(self_chat_id, name, password, stpath, heartbit) VALUES(" +
+                            std::to_string(chatId) + ", '" + name + "', '" + pass + "', '" + stpath + "', NOW())");
+        uint64_t userId = getLastInsertId(stmt);
+        stmt->executeUpdate("INSERT INTO chatuser VALUES(" + std::to_string(userId) + ", " +
+                            std::to_string(chatId) + ")");
+        return db::User(userId, chatId, name, pass, stpath);
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
     return {};
 }
 
-std::vector<db::Chat> InMemoryConnection::lookupChatsForUserId(uint64_t uid) const
-{
-    std::vector<uint64_t> chats;
-    {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        for (const auto &chatuser : m_Storage.chatuser)
-        {
-            if (chatuser.uid == uid)
-            {
-                chats.push_back(chatuser.chatid);
-            }
+db::Chat MysqlConnection::createChat(const std::string& name, uint64_t uid) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "createChat\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT 1 FROM chat WHERE name='" + name + "'"));
+
+        if (res->next())
+            return {};
+
+        stmt->executeUpdate("INSERT INTO chat(name) VALUES('" + name + "')");
+        uint64_t chatId = getLastInsertId(stmt);
+
+        if (uid > 0) {
+            stmt->executeUpdate("INSERT INTO chatuser VALUES(" + std::to_string(uid) + ", " +
+                                std::to_string(chatId) + ")");
         }
-    }
 
-    std::vector<db::Chat> ret;
-    for (uint64_t chatid : chats)
-    {
-        db::Chat chat = lookupChatById(chatid);
-        ret.push_back(chat);
+        return db::Chat(chatId, name);
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
+    return {};
+}
 
+std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name) const {
+    std::vector<db::User> ret;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "lookupUserByName\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM user WHERE name='" + name + "'"));
+
+        while (res->next()) {
+            ret.push_back(db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
+                                   res->getString("password"), res->getString("stpath")));
+        }
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
     return ret;
 }
 
-std::vector<db::Chat> InMemoryConnection::lookupChatByName(const std::string &name) const
-{
-    std::vector<db::Chat> ret;
+db::User MysqlConnection::lookupUserById(uint64_t id) const {
     std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "lookupUserById\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM user WHERE id=" + std::to_string(id)));
 
-    for (const auto &chat : m_Storage.chats)
-    {
-        if (chat.name == name)
+        if (res->next()) {
+            return db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
+                            res->getString("password"), res->getString("stpath"));
+        }
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
+    return {};
+}
+
+std::vector<db::Chat> MysqlConnection::lookupChatsForUserId(uint64_t uid) const {
+    std::vector<db::Chat> ret;
+    std::vector <uint64_t> chats;
+    try {
         {
+            std::lock_guard <std::mutex> lock(m_Mutex);
+            std::cout << "lookupChatsForUserId\n";
+            std::unique_ptr <sql::Statement> stmt(m_Connection->createStatement());
+            std::unique_ptr <sql::ResultSet> res(stmt->executeQuery("SELECT chat_id FROM chatuser WHERE user_id=" +
+                                                                    std::to_string(uid)));
+
+            while (res->next())
+                chats.push_back(res->getUInt64("chat_id"));
+        }
+
+        for (uint64_t chatid : chats) {
+            db::Chat chat = lookupChatById(chatid);
             ret.push_back(chat);
         }
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
     return ret;
 }
 
-db::Chat InMemoryConnection::lookupChatById(uint64_t chatid) const
-{
+std::vector<db::Chat> MysqlConnection::lookupChatByName(const std::string& name) const {
+    std::vector<db::Chat> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    for (const auto &chat : m_Storage.chats)
-    {
-        if (chat.id == chatid)
-        {
-            return chat;
+    try {
+        std::cout << "lookupChatByName\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM chat WHERE name='" + name + "'"));
+
+        while (res->next())
+            ret.push_back(db::Chat(res->getUInt64("id"), res->getString("name")));
+    } catch (sql::SQLException& e) {
+        outputError(e);
+        return ret;
+    }
+    return ret;
+}
+
+db::Chat MysqlConnection::lookupChatById(uint64_t chatid) const {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "lookupChatById\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM chat WHERE id=" +
+                                                               std::to_string(chatid)));
+
+        if (res->next()) {
+            std::cout << chatid << " has next\n";
+            return db::Chat(res->getUInt64("id"), res->getString("name"));
         }
+    } catch (sql::SQLException& e) {
+        outputError(e);
+        return {};
     }
     return {};
 }
 
-std::vector<db::User> InMemoryConnection::lookupUsersForChatId(uint64_t chatid) const
-{
-    std::vector<uint64_t> uids;
-    {
-        std::lock_guard<std::mutex> lock(m_Mutex);
-        for (const auto &chatuser : m_Storage.chatuser)
-        {
-            if (chatuser.chatid == chatid)
-            {
-                uids.push_back(chatuser.uid);
-            }
-        }
-    }
-
+std::vector<db::User> MysqlConnection::lookupUsersForChatId(uint64_t chatid) const {
     std::vector<db::User> ret;
-    for (uint64_t uid: uids)
-    {
-        db::User user = lookupUserById(uid);
-        ret.push_back(user);
-    }
+    std::vector <uint64_t> uids;
+    try {
+        {
+            std::lock_guard <std::mutex> lock(m_Mutex);
+            std::cout << "lookupUsersForChatId\n";
+            std::unique_ptr <sql::Statement> stmt(m_Connection->createStatement());
+            std::unique_ptr <sql::ResultSet> res(stmt->executeQuery("SELECT user_id FROM chatuser WHERE chat_id=" +
+                                                                    std::to_string(chatid)));
 
+            while (res->next())
+                uids.push_back(res->getUInt64("user_id"));
+        }
+
+        for (uint64_t uid : uids) {
+            db::User user = lookupUserById(uid);
+            ret.push_back(user);
+        }
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
     return ret;
 }
 
-void InMemoryConnection::addUserToChat(const db::Chat &chat, const db::User &user)
-{
-    std::lock_guard<std::mutex> lock(m_Mutex);
 
-    for (const auto &chatuser : m_Storage.chatuser)
-    {
-        if (chatuser.chatid == chat.id && chatuser.uid == user.id)
-        {
+void MysqlConnection::addUserToChat(const db::Chat& chat, const db::User& user) {
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "addUserToChat\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT 1 FROM chatuser WHERE user_id=" +
+                                            std::to_string(user.id) + " and chat_id=" + std::to_string(chat.id)));
+
+        if (res->next())
             return;
-        }
+
+        stmt->executeUpdate("INSERT INTO chatuser VALUES(" + std::to_string(user.id) + ", " +
+                            std::to_string(chat.id) + ")");
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
-
-    m_Storage.chatuser.emplace_back(db::Chatuser(chat.id, user.id));
 }
 
-void InMemoryConnection::saveMessage(const db::Message &msg)
-{
+void MysqlConnection::saveMessage(const db::Message& msg) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    m_Storage.messages.push_back(msg);
+    try {
+        std::cout << "saveMessage\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        stmt->executeUpdate("INSERT INTO message(user_id, chat_id, flags, time, text) VALUES(" +
+                            std::to_string(msg.user_from) + ", " + std::to_string(msg.chat_to) + ", " +
+                            std::to_string(static_cast<uint8_t>(msg.flags)) + ", FROM_UNIXTIME(" +
+                            std::to_string(msg.ts) + "), '" + msg.message + "')");
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
 }
 
-std::vector<db::Message> InMemoryConnection::getMessages(uint64_t chatid, const db::get_msg_opt_t &opt) const
-// go from recent messages to oldest
-{
+std::vector<db::Message> MysqlConnection::getMessages(uint64_t chatid, const db::get_msg_opt_t& opt) const {
+    // go from recent messages to oldest
     std::vector<db::Message> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "getMessages\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT id, user_id, chat_id, flags, UNIX_TIMESTAMP(time)"
+                                                               " AS unix_time, text FROM message WHERE chat_id=" +
+                                                               std::to_string(chatid) + " AND UNIX_TIMESTAMP(time)>" +
+                                                               std::to_string(opt.ts) + " ORDER BY id DESC"));
 
-    if (m_Storage.messages.empty())
-    {
-        return {};
+        while (res->next()) {
+            db::Message msg(res->getUInt64("user_id"), res->getUInt64("chat_id"), res->getString("text"));
+            msg.ts = res->getUInt("unix_time");
+            msg.flags = static_cast<db::Message::flags_t>(res->getUInt("flags"));
+            ret.push_back(msg);
+            stmt->executeUpdate("UPDATE message SET flags=" +
+                                std::to_string(static_cast<uint8_t>(db::Message::flags_t::READ)) + ") WHERE id=" +
+                                std::to_string(res->getUInt64("id")));
+
+            if (opt.max_count && ret.size() >= opt.max_count)
+                break;
+        }
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
+    return ret;
+}
 
-    for (size_t i = m_Storage.messages.size() - 1; ; --i)
-    {
-        if (m_Storage.messages[i].chat_to == chatid)
-        {
-            if (m_Storage.messages[i].ts > opt.ts)
-            {
-                ret.push_back(m_Storage.messages[i]);
-                m_Storage.messages[i].flags = db::Message::flags_t::READ;
-            }
-        }
+std::vector<db::Message> MysqlConnection::selectMessages(std::function<bool(const db::Message&)>&& pred,
+                                                         const db::get_msg_opt_t& opt) const {
+    std::vector<db::Message> ret;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    try {
+        std::cout << "selectMessages\n";
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT user_id, chat_id, flags, UNIX_TIMESTAMP(time) AS"
+                                                               " unix_time, text FROM message ORDER BY id DESC"));
 
-        if (opt.max_count && ret.size() >= opt.max_count)
-        {
-            break;
-        }
+        while (res->next()) {
+            db::Message msg(res->getUInt64("user_id"), res->getUInt64("chat_id"), res->getString("text"));
+            msg.ts = res->getUInt("unix_time");
+            msg.flags = static_cast<db::Message::flags_t>(res->getUInt("flags"));
 
-        if (i == 0)
-        {
-            break;
+            if (pred(msg))
+                ret.push_back(msg);
+
+            if (opt.max_count && ret.size() >= opt.max_count)
+                break;
         }
+    } catch (sql::SQLException& e) {
+        outputError(e);
     }
 
     return ret;
 }
 
-std::vector<db::Message> InMemoryConnection::selectMessages(std::function<bool(const db::Message &)> &&pred, const db::get_msg_opt_t &opt) const
-{
-    std::vector<db::Message> ret;
-    std::lock_guard<std::mutex> lock(m_Mutex);
-
-    if (m_Storage.messages.empty())
-    {
-        return {};
-    }
-
-    for (size_t i = m_Storage.messages.size() - 1; ; --i)
-    {
-        if (pred(m_Storage.messages[i]))
-        {
-            ret.push_back(m_Storage.messages[i]);
-        }
-
-        if (opt.max_count && ret.size() >= opt.max_count)
-        {
-            break;
-        }
-
-        if (i == 0)
-        {
-            break;
-        }
-    }
-
-    return ret;
+void MysqlConnection::outputError(sql::SQLException& e) const {
+    std::cout << "# ERR: SQLException in " << __FILE__;
+    std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
+    std::cout << "# ERR: " << e.what();
+    std::cout << " (MySQL error code: " << e.getErrorCode();
+    std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
 }
-*/
+
+uint64_t MysqlConnection::getLastInsertId(const std::unique_ptr<sql::Statement>& stmt) const {
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT LAST_INSERT_ID() AS id"));
+    res->next();
+    return res->getUInt64("id");
+}

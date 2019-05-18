@@ -35,7 +35,7 @@ def configure(ctx):
     ]
 
     ctx.env.LIB_API_EXTERNAL += ['boost_system']
-    ctx.env.LIB_API_EXTERNAL += ['z', 'crypto', 'ssl', 'pthread', 'rt', 'mysqlclient',
+    ctx.env.LIB_API_EXTERNAL += ['z', 'crypto', 'ssl', 'pthread', 'rt', 'mysqlcppconn',
                                  'm', 'atomic', 'dl']
 
     link_flags = [
@@ -60,7 +60,7 @@ def configure(ctx):
     ctx.env.INCLUDES_API = [ctx.path.find_dir('.').abspath(), '../../']
     ctx.env.INCLUDES_API += ['../../third_party/rapidjson-1.0.2/include/']
     ctx.env.INCLUDES_API += ['../../third_party/']
-    ctx.env.INCLUDES_API += ['/usr/include/mysql']
+    ctx.env.INCLUDES_API += ['/usr/include/']
     ctx.env.LIBPATH_API = ctx.env.LIBPATH_API_EXTERNAL
     ctx.env.LINKFLAGS_API = link_flags
     ctx.env.CFLAGS_API    = cflags

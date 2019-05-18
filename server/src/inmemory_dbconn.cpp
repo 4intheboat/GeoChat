@@ -8,7 +8,7 @@ using namespace o2logger;
 InMemoryConnection::Storage InMemoryConnection::m_Storage;
 std::mutex InMemoryConnection::m_Mutex;
 
-void InMemoryConnection::updateUserHeartBit(const db::User &user, uint64_t ts)
+void InMemoryConnection::updateUserHeartBit(const db::User &user, time_t ts)
 {
     std::lock_guard<std::mutex> lock(m_Mutex);
 
