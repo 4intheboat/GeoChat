@@ -1,6 +1,6 @@
 #include "apiclient_utils.hpp"
 
-#include </home/nastya/Technopark/new_try/GeoChat/third_party/rapidjson-1.0.2/include/rapidjson/document.h>
+#include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 

@@ -15,18 +15,18 @@ static std::string help =
 "   HELP\n"
 "   LOGIN <user> <pass>\n"
 "   REGISTER <user> <pass>\n"
-//"   REGISTER_G <group>\n"
+"   REGISTER_G <group>\n"
 "   CHAT_WITH <user>\n"
 "   CHAT_WITH_LOCATION <location>\n"
 "   GET_LOCATIONS\n"
-//"   ADD_TO_G <user> <group>\n"
+"   ADD_TO_G <user> <group>\n"
 "   UNCHAT\n"
 "   HISTORY <user> [N]\n"
-//"   HISTORY_G <group> [N]\n"
+"   HISTORY_G <group> [N]\n"
 "   DIRECT_MSG <user> <msg>\n"
-//"   DIRECT_MSG_G <group> <msg>\n"
+"   DIRECT_MSG_G <group> <msg>\n"
 "   STATUS <user>\n"
-//"   STATUS_G <group>\n"
+"   STATUS_G <group>\n"
 "   QUIT\n";
 
 enum class cmd_t : uint8_t
@@ -42,11 +42,11 @@ enum class cmd_t : uint8_t
     CHAT_WITH_LOCATION, //new
     ADD_TO_GROUP,
     HISTORY_USER,
-    HISTORY_GROUP, //delete
+    HISTORY_GROUP,
     DIRECT_MSG_USER,
-    DIRECT_MSG_GROUP, // delete
+    DIRECT_MSG_GROUP,
     STATUS_USER,
-    STATUS_GROUP, //delete
+    STATUS_GROUP,
     QUIT
 };
 
