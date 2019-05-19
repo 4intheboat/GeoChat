@@ -33,7 +33,7 @@ Server::Server(int port, int io_thread_pool_size) :
     m_Signals(m_MainIo->ioService()),
     m_HupSignals(m_MainIo->ioService()),
     m_Acceptor(m_MainIo->ioService()),
-    m_Db(db::type_t::MEMORY, 5)
+    m_Db(db::type_t::MYSQL, 5)
 {
     m_Signals.add(SIGINT);
     m_Signals.add(SIGTERM);
@@ -88,7 +88,9 @@ void Server::run()
         m_IoThreads.back()->start();
     }
 
+    logi("Before run");
     m_Db.run();
+    logi("After run");
 
     startAccept();
 

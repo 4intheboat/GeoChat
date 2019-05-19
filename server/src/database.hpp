@@ -4,6 +4,10 @@
 #include <mutex>
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include "mysql_connection.h"
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/statement.h>
 
 #include "request.hpp"
 #include "common/common.hpp"
@@ -58,7 +62,7 @@ struct User
     {}
 	uint64_t id             = 0;
 	uint64_t self_chat_id   = 0;
-    uint64_t heartbit       = 0;
+    time_t heartbit         = 0;
     std::string name;
     std::string password;
     std::string stpath;         // storage path
@@ -111,7 +115,7 @@ public:
     AbstractConnection() {}
     virtual ~AbstractConnection() {}
 
-    virtual void updateUserHeartBit(const db::User &user, uint64_t ts) = 0;
+    virtual void updateUserHeartBit(const db::User &user, time_t ts) = 0;
     virtual db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath) = 0;
     virtual db::Chat createChat(const std::string &name, uint64_t uid) = 0;
 
@@ -137,7 +141,7 @@ class InMemoryConnection : public AbstractConnection
 public:
     InMemoryConnection() {}
 
-    void updateUserHeartBit(const db::User &user, uint64_t ts) override;
+    void updateUserHeartBit(const db::User &user, time_t ts) override;
     db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath) override;
     db::Chat createChat(const std::string &name, uint64_t uid) override;
 
@@ -172,26 +176,34 @@ private:
 class MysqlConnection : public AbstractConnection
 {
 public:
-    MysqlConnection() {}
+    MysqlConnection();
+    ~MysqlConnection();
 
-    void updateUserHeartBit(const db::User &, uint64_t ) override {}
-    db::User createUser(const std::string &, const std::string &, const std::string &) override { return {}; }
-    db::Chat createChat(const std::string &, uint64_t ) override { return {}; }
+    void updateUserHeartBit(const db::User& user, time_t ts) override;
+    db::User createUser(const std::string& name, const std::string& pass, const std::string& stpath) override;
+    db::Chat createChat(const std::string& name, uint64_t uid) override;
 
-    std::vector<db::User> lookupUserByName(const std::string &) const override { return {}; }
-    db::User lookupUserById(uint64_t ) const override { return {}; }
-    std::vector<db::Chat> lookupChatsForUserId(uint64_t ) const override { return {}; }
+    std::vector<db::User> lookupUserByName(const std::string& name) const override;
+    db::User lookupUserById(uint64_t id) const override;
+    std::vector<db::Chat> lookupChatsForUserId(uint64_t uid) const override;
 
-    std::vector<db::Chat> lookupChatByName(const std::string &) const override { return {}; }
-    db::Chat lookupChatById(uint64_t ) const override { return {}; }
-    std::vector<db::User> lookupUsersForChatId(uint64_t ) const override { return {}; }
-    void addUserToChat(const db::Chat &, const db::User &) override {};
+    std::vector<db::Chat> lookupChatByName(const std::string& name) const override;
+    db::Chat lookupChatById(uint64_t chatid) const override;
+    std::vector<db::User> lookupUsersForChatId(uint64_t chatid) const override;
+    void addUserToChat(const db::Chat& chat, const db::User& user) override;
 
-    void saveMessage(const db::Message &) override {}
-    std::vector<db::Message> getMessages(uint64_t, const db::get_msg_opt_t &) const override { return {}; }
-    std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&, const db::get_msg_opt_t &) const override { return {}; }
+    void saveMessage(const db::Message& msg) override;
+    std::vector<db::Message> getMessages(uint64_t chatid, const db::get_msg_opt_t& opt) const override;
+    std::vector<db::Message> selectMessages(std::function<bool(const db::Message&)>&& pred,
+                                            const db::get_msg_opt_t& opt) const override;
 
 private:
+    void outputError(sql::SQLException& e) const;
+    uint64_t getLastInsertId(const std::unique_ptr<sql::Statement>& stmt) const;
+
+    static sql::Driver* m_Driver;
+    static std::mutex m_Mutex;
+    std::unique_ptr<sql::Connection> m_Connection;
 };
 
  
