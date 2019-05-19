@@ -6,7 +6,7 @@ import os
 import subprocess
 
 
-APPNAME = 'chatserver'
+APPNAME = 'tests'
 VERSION = '0.0.1'
 
 top = '.'
@@ -57,7 +57,7 @@ def configure(ctx):
     cflags += system_include_flags
 
     ctx.env.DEFINES_API = ctx.env.DEFINES_API_EXTERNAL
-    ctx.env.INCLUDES_API = [ctx.path.find_dir('.').abspath(), '../../']
+    ctx.env.INCLUDES_API = [ctx.path.find_dir('.').abspath(), '../']
     ctx.env.INCLUDES_API += ['../../third_party/rapidjson-1.0.2/include/']
     ctx.env.INCLUDES_API += ['../../third_party/']
     ctx.env.INCLUDES_API += ['/usr/include/']
@@ -67,17 +67,15 @@ def configure(ctx):
     ctx.env.CXXFLAGS_API  = cflags
     ctx.env.LIB_API = ctx.env.LIB_API_EXTERNAL
     ctx.env.STLIB_API = ['property', 'o2logger', ]
-    ctx.env.STLIBPATH_API = ['../../../third_party/libproperty/src/BUILD']
-    ctx.env.STLIBPATH_API += ['../../../third_party/o2logger/src/BUILD']
+    ctx.env.STLIBPATH_API = ['../../third_party/libproperty/src/BUILD']
+    ctx.env.STLIBPATH_API += ['../../third_party/o2logger/src/BUILD']
 
 def build(ctx):
-    common_source = ['../../common/utils.cpp', '../../net/client.cpp',
-                     '../../common/sysutils.cpp', ]
+    common_source = ['../common/utils.cpp', '../net/client.cpp',
+                     '../common/sysutils.cpp', ]
 
     ctx.program(
             target       = APPNAME,
             use          = 'API',
-            source       = ['main.cpp', 'server.cpp', 'apiclient.cpp', 'database_worker.cpp',
-                            'database.cpp', 'inmemory_dbconn.cpp', 'mysql_connection.cpp',
-                            'apiclient_utils.cpp', ] + common_source,
+            source       = ['main.cpp', 'db_connection.cpp', '../server/src/inmemory_dbconn.cpp'] + common_source
     )
