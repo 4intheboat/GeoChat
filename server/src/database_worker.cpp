@@ -279,7 +279,7 @@ void DatabaseWorker::processQueue()
         else if (task.cmd == common::cmd_t::USER_CREATE)
         {
             std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
-            db::User user = conn->createUser(task.request.user, encrypted_pass, task.storage);
+            db::User user = conn->createUser(task.request.user, task.request.ip_adress, encrypted_pass, task.storage);
             if (user.id == 0)
             {
                 task.client->sendErrorResponse(409, common::ApiStatusCode::ERR_CONSTRAINT, "user already exists");

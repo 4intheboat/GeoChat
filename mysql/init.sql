@@ -14,6 +14,8 @@ CREATE TABLE `user` (
     password VARBINARY(512) NOT NULL,
     stpath VARBINARY(512) NOT NULL,
     heartbit TIMESTAMP NOT NULL,
+    ip VARBINARY(32) NOT NULL,
+    city VARBINARY(512),
     PRIMARY KEY (id)
 ) CHARACTER SET utf8mb4, ENGINE InnoDB;
 

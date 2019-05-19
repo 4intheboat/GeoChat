@@ -79,5 +79,5 @@ def build(ctx):
             use          = 'API',
             source       = ['main.cpp', 'server.cpp', 'apiclient.cpp', 'database_worker.cpp',
                             'database.cpp', 'inmemory_dbconn.cpp', 'mysql_connection.cpp',
-                            'apiclient_utils.cpp', ] + common_source,
+                            'apiclient_utils.cpp', 'location_client.cpp'] + common_source,
     )

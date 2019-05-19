@@ -1,6 +1,8 @@
 #include "database.hpp"
 
 #include "o2logger/src/o2logger.hpp"
+#include "location_client.hpp"
+#include <boost/asio.hpp>
 
 using namespace o2logger;
 
@@ -22,7 +24,7 @@ void InMemoryConnection::updateUserHeartBit(const db::User &user, time_t ts)
     }
 }
 
-db::User InMemoryConnection::createUser(const std::string &name, const std::string &pass, const std::string &stpath)
+db::User InMemoryConnection::createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip)
 /*
     transaction start
     insert into chat
@@ -44,9 +46,16 @@ db::User InMemoryConnection::createUser(const std::string &name, const std::stri
     uint64_t chat_id = m_Storage.chat_autoincrement++;
     uint64_t user_id = m_Storage.user_autoincrement++;
 
+    boost::asio::io_service io;
+    LocationClient location_client(io);
+    location_client.connect_to_api();
+//    std::string ip = "91.192.20.94";
+
+    std::string address = location_client.get_city_by_ip(ip);
+
     m_Storage.chats.emplace_back(db::Chat(chat_id, name));
     db::User user(user_id, chat_id, name, pass, stpath);
-    
+
     m_Storage.users.emplace_back(user);
 
     m_Storage.chatuser.emplace_back(db::Chatuser(chat_id, user_id));
@@ -269,4 +278,3 @@ std::vector<db::Message> InMemoryConnection::selectMessages(std::function<bool(c
 
     return ret;
 }
-
