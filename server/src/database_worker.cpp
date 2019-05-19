@@ -364,6 +364,22 @@ void DatabaseWorker::processQueue()
 
             task.client->sendOkResponse("{\"status\": 0}");
         }
+        else if (task.cmd == common::cmd_t::GET_LOCATIONS)
+        {
+            loge("get locations");
+            // дальше код
+            // (если нужно что-то поменять иди в apiclient.cpp parse_meta)
+            // доступ к айпи: task.request.ip_adress;
+
+            task.client->sendOkResponse("{\"status\": 0}");
+        }
+        else if (task.cmd == common::cmd_t::CHAT_WITH_LOCATION)
+        {
+            loge("chat_with_location");
+            // дальше код
+            // наша страна! task.request.country;
+            task.client->sendOkResponse("{\"status\": 0}");
+        }
     }
 }
 

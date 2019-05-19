@@ -37,6 +37,8 @@ std::string cmd2string(cmd_t cmd)
         case cmd_t::STATUS_GROUP:      return "STATUS_G";
         case cmd_t::QUIT:              return "QUIT";
         case cmd_t::NONE:              return "none";
+        case cmd_t::GET_LOCATIONS:     return "GET_LOCATIONS";
+        case cmd_t::CHAT_WITH_LOCATION:return "CHAT_WITH_LOCATION";     
     }
     return "";
 }
@@ -81,6 +83,11 @@ args_t parse(const std::string &string)
         ret.cmd = cmd_t::UNCHAT;
         return ret;
     }
+    if (cmd == "get_locations") //new
+    {
+        ret.cmd = cmd_t::GET_LOCATIONS;
+        return ret;
+    }
 
     if (parts.size() < 2)
     {
@@ -90,6 +97,12 @@ args_t parse(const std::string &string)
     {
         ret.cmd = cmd_t::CHAT_WITH_USER;
         ret.chat.name = parts[1];
+        return ret;
+    }
+    if (cmd == "chat_with_location") // new
+    {
+        ret.cmd = cmd_t::CHAT_WITH_LOCATION;
+        ret.location.location = parts[1];
         return ret;
     }
     if (cmd == "register_g")
@@ -273,6 +286,7 @@ std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, resp
 {
     unused_args(cmd);
 
+
     rapidjson::Document document;
     if (document.Parse(json.data()).HasParseError())
     {
@@ -307,6 +321,105 @@ std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, resp
     return "";
 }
 
+std::string parse_location_response(input::cmd_t cmd, const std::string &json, loc_response_t &response)
+{
+    unused_args(cmd);
+
+    rapidjson::Document document;
+    if (document.Parse(json.data()).HasParseError())
+    {
+        std::string response = "bad request, invalid json";
+        return response;
+    }
+    auto it = document.FindMember("server_ts");
+    if (it != document.MemberEnd())
+    {
+        response.server_ts = it->value.GetUint64();
+    }
+
+    it = document.FindMember("locations");
+    if (it != document.MemberEnd())
+    {
+        rapidjson::Value &locations = document["locations"];
+        if (locations.IsArray())
+        {
+            for (auto i  = 0; i < locations.Size(); i++)
+            {
+                if (locations[i].IsObject())
+                {
+                    auto it = locations[i].FindMember("location");
+                    if (it != locations[i].MemberEnd())
+                    {
+                        response.locations.push_back(it->value.GetString());
+                    }
+                    it = locations[i].FindMember("status");
+                    if (it != locations[i].MemberEnd())
+                    {
+                        response.status.push_back(it->value.GetBool());
+                    }
+                }
+            }
+        }
+
+    }
+
+    return "";
+}
+
+std::string parse_chat_loc_response(input::cmd_t cmd, const std::string &json, chat_loc_response_t &response)
+{
+    unused_args(cmd);
+
+    rapidjson::Document document;
+    if (document.Parse(json.data()).HasParseError())
+    {
+        std::string response = "bad request, invalid json";
+        return response;
+    }
+    auto it = document.FindMember("server_ts");
+    if (it != document.MemberEnd())
+    {
+        response.server_ts = it->value.GetUint64();
+    }
+
+    it = document.FindMember("users");
+    if (it != document.MemberEnd())
+    {
+        rapidjson::Value &users= document["users"];
+        if (users.IsArray())
+        {
+            for (auto i  = 0; i < users.Size(); i++)
+            {
+                if (users[i].IsObject())
+                {
+                    auto it = users[i].FindMember("id");
+                    resp_user_t user;
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.uid = it->value.GetUint64();
+                    }
+                    it = users[i].FindMember("status");
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.status = it->value.GetBool();
+                    }
+                    it = users[i].FindMember("username");
+                    if (it != users[i].MemberEnd())
+                    {
+                        user.username = it->value.GetString();
+                    }
+                    response.users.push_back(user);
+
+                }
+            }
+        }
+
+    }
+
+    return "";
+}
+
+
 std::string build_request(const std::string &resource, const std::string &content_type, const std::string &body)
 {
     std::string request = "POST " + resource + " HTTP/1.1\r\n";
@@ -339,6 +452,7 @@ std::string build_user_history_msg_body(uint64_t from, const std::string &name, 
     return std::string(buffer.GetString(), buffer.GetSize());
 
 }
+
 
 std::string build_user_pass_body(const std::string &user, const std::string &pass)
 {
@@ -423,7 +537,49 @@ std::string build_groups_msg_body(uint64_t from,
     return std::string(buffer.GetString(), buffer.GetSize());
 }
 
+// NEW
+std::string build_get_locations_body(uint64_t from, 
+                                const std::string &client_ip,
+                                const std::string &pass)
+{
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
 
+    writer.Key("uid");
+    writer.Uint64(from);
+
+    writer.Key("client_ip");
+    writer.String(client_ip.c_str());
+    
+    writer.Key("password");
+    writer.String(pass.c_str());
+
+    writer.EndObject();
+    return std::string(buffer.GetString(), buffer.GetSize());
+}
+    
+std::string build_location_body(uint64_t from, 
+                                const std::string &country,
+                                const std::string &pass)
+{
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+
+    writer.Key("uid");
+    writer.Uint64(from);
+
+    writer.Key("country");
+    writer.String(country.c_str());
+    
+    writer.Key("password");
+    writer.String(pass.c_str());
+
+    writer.EndObject();
+    return std::string(buffer.GetString(), buffer.GetSize());
+}
+    
 }  // namespace cli_utils
 
 

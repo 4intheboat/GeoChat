@@ -270,6 +270,26 @@ std::string parse_meta(RequestDetails &details,
         }
         return "";
     }
+    if (command == common::cmd_t::GET_LOCATIONS)
+    {
+        loge("parse meta get_locations");
+        //дальше код для гет локейшнс, разбор параметров и все такое
+        // тут ничего не надо, но возможно стоит определеить айпи!
+        details.params.ip_adress = details.remote_address;
+    }
+    if (command == common::cmd_t::CHAT_WITH_LOCATION)
+    {
+        loge("parse meta chat_with_location");
+        //дальше код
+        std::string fatal_error;
+        auto it = find_required_string_param(document, "country", fatal_error);
+        if (!fatal_error.empty())
+        {
+            f::loge("[{0}] parse meta: {1}", details.sessid, fatal_error);
+            return fatal_error;
+        }
+        details.params.country = it->value.GetString();
+    }
 
     return "";
 }
@@ -526,6 +546,7 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
 
     logd3(reply._headers);
     logd4("body: ", reply._body);
+    loge("we here trying to check resourse");
 
     if (m_RequestDetails.resource == "/v1/idle")
     {
@@ -577,6 +598,14 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     else if (m_RequestDetails.resource == "/v1/chat/adduser")
     {
         v1_handler(reply, common::cmd_t::CHAT_ADDUSER);
+    }
+    else if (m_RequestDetails.resource == "/v1/locations")
+    {
+        v1_handler(reply, common::cmd_t::GET_LOCATIONS);
+    }
+    else if (m_RequestDetails.resource == "/v1/locations/users")
+    {
+        v1_handler(reply, common::cmd_t::CHAT_WITH_LOCATION);
     }
     else
     {

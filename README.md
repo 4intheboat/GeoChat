@@ -25,7 +25,7 @@ CXX=/usr/bin/g++-5 make
 
 Запускается так:
 server:
-$ ./server/src/BUILD/chatserver —sert server.pem —port 9001
+$ ./server/src/BUILD/chatserver --sert server.pem --port 9001
 
 client:
-$ ./client/src/BUILD/chatclient —server localhost:9001
+$ ./client/src/BUILD/chatclient --server localhost:9001
