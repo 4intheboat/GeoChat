@@ -5,8 +5,12 @@
 #include <string>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
+#include <boost/asio.hpp>
+#include "location_client.hpp"
 
 using namespace o2logger;
+
+
 
 
 sql::Driver* MysqlConnection::m_Driver = get_driver_instance();
@@ -43,7 +47,7 @@ void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
  * commit
 */
 // TODO sql injections!!!
-db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath) {
+db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath, const std::string &ip) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     try {
         std::cout << "createUser\n";
@@ -53,10 +57,22 @@ db::User MysqlConnection::createUser(const std::string& name, const std::string&
         if (res->next())
             return {};
 
+        std::cout << ip << std::endl;
+
+
+        boost::asio::io_service io;
+        LocationClient location_client(io);
+        location_client.connect_to_api();
+//        std::string ip = "91.192.20.94";  // Uncomment for check (Истра)
+
+        std::string address = location_client.get_city_by_ip(ip);
+        std::cout << "Этот IP из города " << address << std::endl;
+
+
         stmt->executeUpdate("INSERT INTO chat(name) VALUES('" + name + "')");
         uint64_t chatId = getLastInsertId(stmt);
-        stmt->executeUpdate("INSERT INTO user(self_chat_id, name, password, stpath, heartbit) VALUES(" +
-                            std::to_string(chatId) + ", '" + name + "', '" + pass + "', '" + stpath + "', NOW())");
+        stmt->executeUpdate("INSERT INTO user(self_chat_id, name, password, stpath, ip, city, heartbit) VALUES(" +
+                            std::to_string(chatId) + ", '" + name + "', '" + pass + "', '" + stpath + "', '" + ip + "', '" + address + "', NOW())");
         uint64_t userId = getLastInsertId(stmt);
         stmt->executeUpdate("INSERT INTO chatuser VALUES(" + std::to_string(userId) + ", " +
                             std::to_string(chatId) + ")");

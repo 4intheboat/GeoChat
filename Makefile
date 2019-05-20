@@ -9,8 +9,8 @@ current_dir := $(dir $(mkfile_path))
 world: o2property o2logger
 	make ROOT_SRC=${current_dir} -C server/src/
 	make ROOT_SRC=${current_dir} -C client/src/
-	make ROOT_SRC=${current_dir} -C tests/src/
-	make ROOT_SRC=${current_dir} -C tests/
+	#make ROOT_SRC=${current_dir} -C tests/src/
+	#make ROOT_SRC=${current_dir} -C tests/
 
 o2property:
 	make ROOT_SRC=${current_dir} -C third_party/libproperty
@@ -21,7 +21,7 @@ o2logger:
 clean:
 	rm -rf client/src/BUILD
 	rm -rf server/src/BUILD
-	rm -rf tests/src/BUILD
-	rm -rf tests/BUILD
+	#rm -rf tests/src/BUILD
+	#rm -rf tests/BUILD
 
 .PHONY: world clean libproperty o2logger

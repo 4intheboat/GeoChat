@@ -116,7 +116,7 @@ public:
     virtual ~AbstractConnection() {}
 
     virtual void updateUserHeartBit(const db::User &user, time_t ts) = 0;
-    virtual db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath) = 0;
+    virtual db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip) = 0;
     virtual db::Chat createChat(const std::string &name, uint64_t uid) = 0;
 
     virtual std::vector<db::User> lookupUserByName(const std::string &name) const = 0;
@@ -142,7 +142,7 @@ public:
     InMemoryConnection() {}
 
     void updateUserHeartBit(const db::User &user, time_t ts) override;
-    db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath) override;
+    db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip) override;
     db::Chat createChat(const std::string &name, uint64_t uid) override;
 
     std::vector<db::User> lookupUserByName(const std::string &name) const override;
@@ -180,7 +180,7 @@ public:
     ~MysqlConnection();
 
     void updateUserHeartBit(const db::User& user, time_t ts) override;
-    db::User createUser(const std::string& name, const std::string& pass, const std::string& stpath) override;
+    db::User createUser(const std::string& name, const std::string& pass, const std::string& stpath, const std::string &ip) override;
     db::Chat createChat(const std::string& name, uint64_t uid) override;
 
     std::vector<db::User> lookupUserByName(const std::string& name) const override;
