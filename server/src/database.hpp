@@ -200,6 +200,7 @@ public:
 private:
     void outputError(sql::SQLException& e) const;
     uint64_t getLastInsertId(const std::unique_ptr<sql::Statement>& stmt) const;
+    uint64_t getLastInsertId() const;
 
     static sql::Driver* m_Driver;
     static std::mutex m_Mutex;
