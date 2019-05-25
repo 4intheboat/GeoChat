@@ -87,7 +87,7 @@ struct Chatuser
 struct get_msg_opt_t
 {
     //bool only_unread = true;
-    uint64_t ts = 0;           // from this time
+    time_t ts = 0;           // from this time
     uint32_t max_count = 3;
 };
 
@@ -108,7 +108,7 @@ struct Message
     flags_t flags       = flags_t::UNREAD;
     uint64_t user_from  = 0;                    // FROM:
     uint64_t chat_to    = 0;                    // TO:
-    uint64_t ts         = 0;
+    time_t ts           = 0;
     std::string message;
 };
 
