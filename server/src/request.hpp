@@ -13,7 +13,7 @@ struct RequestDetails
     struct Params
     {
         uint64_t uid = 0;
-        uint64_t ts = 0;
+        time_t ts = 0;
         uint64_t count = 0;         // of messages
 
         std::string message;        // send

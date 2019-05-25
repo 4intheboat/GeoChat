@@ -3,6 +3,7 @@
 #include <string>
 #include <mutex>
 #include <vector>
+#include <set>
 #include <boost/shared_ptr.hpp>
 #include "mysql_connection.h"
 #include <cppconn/driver.h>
@@ -53,19 +54,25 @@ struct Chat
 struct User
 {
     User() {}
-    User(uint64_t id, uint64_t chatid, const std::string &name, const std::string &pass, const std::string &path) :
+    User(uint64_t id, uint64_t chatid, const std::string &name, const std::string &pass, const std::string &path,
+         const std::string &ip, const std::string &city, time_t heartbit = 0) :
         id(id),
         self_chat_id(chatid),
         name(name),
         password(pass),
-        stpath(path)
+        stpath(path),
+        ip(ip),
+        city(city),
+        heartbit(heartbit)
     {}
 	uint64_t id             = 0;
 	uint64_t self_chat_id   = 0;
-    time_t heartbit         = 0;
     std::string name;
     std::string password;
     std::string stpath;         // storage path
+    std::string ip;
+    std::string city;
+    time_t heartbit         = 0;
 };
 
 // many to many link -> chats with users
@@ -80,7 +87,7 @@ struct Chatuser
 struct get_msg_opt_t
 {
     //bool only_unread = true;
-    uint64_t ts = 0;           // from this time
+    time_t ts = 0;           // from this time
     uint32_t max_count = 3;
 };
 
@@ -101,7 +108,7 @@ struct Message
     flags_t flags       = flags_t::UNREAD;
     uint64_t user_from  = 0;                    // FROM:
     uint64_t chat_to    = 0;                    // TO:
-    uint64_t ts         = 0;
+    time_t ts           = 0;
     std::string message;
 };
 
@@ -116,11 +123,13 @@ public:
     virtual ~AbstractConnection() {}
 
     virtual void updateUserHeartBit(const db::User &user, time_t ts) = 0;
-    virtual db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip) = 0;
+    virtual db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath,
+                                const std::string &ip, const std::string &city) = 0;
     virtual db::Chat createChat(const std::string &name, uint64_t uid) = 0;
 
     virtual std::vector<db::User> lookupUserByName(const std::string &name) const = 0;
     virtual db::User lookupUserById(uint64_t id) const = 0;
+    virtual std::vector<db::User> lookupUserByCity(const std::string &city) const = 0;
     virtual std::vector<db::Chat> lookupChatsForUserId(uint64_t uid) const = 0;
 
     virtual std::vector<db::Chat> lookupChatByName(const std::string &name) const = 0;
@@ -130,7 +139,10 @@ public:
 
     virtual void saveMessage(const db::Message &msg) = 0;
     virtual std::vector<db::Message> getMessages(uint64_t chatid, const db::get_msg_opt_t &opt) const = 0;
-    virtual std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&pred, const db::get_msg_opt_t &opt) const = 0;
+    virtual std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&pred,
+                                                    const db::get_msg_opt_t &opt) const = 0;
+
+    virtual std::set<std::string> getAllDistinctLocations() const = 0;
 
 protected:
 };
@@ -142,11 +154,13 @@ public:
     InMemoryConnection() {}
 
     void updateUserHeartBit(const db::User &user, time_t ts) override;
-    db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip) override;
+    db::User createUser(const std::string &name, const std::string &pass, const std::string &stpath,
+                        const std::string &ip, const std::string &city) override;
     db::Chat createChat(const std::string &name, uint64_t uid) override;
 
     std::vector<db::User> lookupUserByName(const std::string &name) const override;
     db::User lookupUserById(uint64_t id) const override;
+    std::vector<db::User> lookupUserByCity(const std::string &city) const override;
     std::vector<db::Chat> lookupChatsForUserId(uint64_t uid) const override;
 
     std::vector<db::Chat> lookupChatByName(const std::string &name) const override;
@@ -156,7 +170,10 @@ public:
 
     void saveMessage(const db::Message &msg) override;
     std::vector<db::Message> getMessages(uint64_t chatid, const db::get_msg_opt_t &opt) const override;
-    std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&pred, const db::get_msg_opt_t &opt) const override;
+    std::vector<db::Message> selectMessages(std::function<bool(const db::Message &)> &&pred,
+                                                               const db::get_msg_opt_t &opt) const override;
+
+    std::set<std::string> getAllDistinctLocations() const override;
 
 private:
     struct Storage
@@ -180,11 +197,13 @@ public:
     ~MysqlConnection();
 
     void updateUserHeartBit(const db::User& user, time_t ts) override;
-    db::User createUser(const std::string& name, const std::string& pass, const std::string& stpath, const std::string &ip) override;
+    db::User createUser(const std::string& name, const std::string& pass, const std::string& stpath,
+                        const std::string& ip, const std::string& city) override;
     db::Chat createChat(const std::string& name, uint64_t uid) override;
 
     std::vector<db::User> lookupUserByName(const std::string& name) const override;
     db::User lookupUserById(uint64_t id) const override;
+    std::vector<db::User> lookupUserByCity(const std::string& city) const override;
     std::vector<db::Chat> lookupChatsForUserId(uint64_t uid) const override;
 
     std::vector<db::Chat> lookupChatByName(const std::string& name) const override;
@@ -196,6 +215,8 @@ public:
     std::vector<db::Message> getMessages(uint64_t chatid, const db::get_msg_opt_t& opt) const override;
     std::vector<db::Message> selectMessages(std::function<bool(const db::Message&)>&& pred,
                                             const db::get_msg_opt_t& opt) const override;
+
+    std::set<std::string> getAllDistinctLocations() const override;
 
 private:
     void outputError(sql::SQLException& e) const;
