@@ -4,8 +4,6 @@
 #include <string>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
-#include <boost/asio.hpp>
-#include "location_client.hpp"
 
 using namespace o2logger;
 
@@ -44,33 +42,26 @@ void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
  * commit
 */
 db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath,
-                                     const std::string& ip) {
+                                     const std::string& ip, const std::string& city) {
     std::lock_guard<std::mutex> lock(m_Mutex);
     o2logger::logi("createUser");
     try {
-        std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement("SELECT 1 FROM user WHERE name=?"));
+        std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
+                "SELECT 1 FROM user WHERE name=?"));
         pstmt->setString(1, name);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
         if (res->next())
             return {};
 
-        std::cout << ip << std::endl;
-
-        boost::asio::io_service io;
-        LocationClient location_client(io);
-        location_client.connect_to_api();
-//      std::string ip = "91.192.20.94";  // Uncomment for check (Истра)
-        std::string city = location_client.get_city_by_ip(ip);
-        std::cout << "Этот IP из города " << city << std::endl;
-
         pstmt.reset(m_Connection->prepareStatement("INSERT INTO chat(name) VALUES(?)"));
         pstmt->setString(1, name);
         pstmt->executeUpdate();
         uint64_t chatId = getLastInsertId();
 
-        pstmt.reset(m_Connection->prepareStatement("INSERT INTO user(self_chat_id, name, password, stpath, heartbit,"
-                                                   "ip, city) VALUES(?, ?, ?, ?, NOW(), ?, ?)"));
+        pstmt.reset(m_Connection->prepareStatement(
+                "INSERT INTO user(self_chat_id, name, password, stpath, heartbit, ip, city) "
+                "VALUES(?, ?, ?, ?, FROM_UNIXTIME(0), ?, ?)"));
         pstmt->setUInt64(1, chatId);
         pstmt->setString(2, name);
         pstmt->setString(3, pass);
@@ -85,7 +76,7 @@ db::User MysqlConnection::createUser(const std::string& name, const std::string&
         pstmt->setUInt64(2, chatId);
         pstmt->executeUpdate();
 
-        return db::User(userId, chatId, name, pass, stpath);
+        return db::User(userId, chatId, name, pass, stpath, ip, city);
     } catch (sql::SQLException& e) {
         outputError(e);
     }
@@ -123,11 +114,14 @@ std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name)
     o2logger::logi("lookupUserByName");
     try {
         std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
-        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM user WHERE name='" + name + "'"));
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery(
+                "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
+                "FROM user WHERE name='" + name + "'"));
 
         while (res->next()) {
             ret.push_back(db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
-                                   res->getString("password"), res->getString("stpath")));
+                                   res->getString("password"), res->getString("stpath"), res->getString("ip"),
+                                   res->getString("city"), res->getUInt("unix_heartbit")));
         }
     } catch (sql::SQLException& e) {
         outputError(e);
@@ -140,16 +134,40 @@ db::User MysqlConnection::lookupUserById(uint64_t id) const {
     o2logger::logi("lookupUserById");
     try {
         std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
-        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT * FROM user WHERE id=" + std::to_string(id)));
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery(
+                "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
+                "FROM user WHERE id=" + std::to_string(id)));
 
         if (res->next()) {
             return db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
-                            res->getString("password"), res->getString("stpath"));
+                            res->getString("password"), res->getString("stpath"), res->getString("ip"),
+                            res->getString("city"), res->getUInt("unix_heartbit"));
         }
     } catch (sql::SQLException& e) {
         outputError(e);
     }
     return {};
+}
+
+std::vector<db::User> MysqlConnection::lookupUserByCity(const std::string& city) const {
+    std::vector<db::User> ret;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    o2logger::logi("lookupUserByCity");
+    try {
+        std::unique_ptr<sql::Statement> stmt(m_Connection->createStatement());
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery(
+                "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
+                "FROM user WHERE city='" + city + "'"));
+
+        while (res->next()) {
+            ret.push_back(db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
+                                   res->getString("password"), res->getString("stpath"), res->getString("ip"),
+                                   res->getString("city"), res->getUInt("unix_heartbit")));
+        }
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
+    return ret;
 }
 
 std::vector<db::Chat> MysqlConnection::lookupChatsForUserId(uint64_t uid) const {
@@ -319,6 +337,25 @@ std::vector<db::Message> MysqlConnection::selectMessages(std::function<bool(cons
     }
 
     return ret;
+}
+
+std::set<std::string> MysqlConnection::getAllDistinctLocations() const {
+    std::set<std::string> result;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    o2logger::logi("getAllDistinctLocations");
+
+    try {
+        std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
+                "SELECT DISTINCT city FROM user"));
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+        while (res->next())
+            result.insert(res->getString("city"));
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
+
+    return result;
 }
 
 void MysqlConnection::outputError(sql::SQLException& e) const {
