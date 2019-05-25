@@ -1,18 +1,20 @@
 #include <chrono>
 #include <atomic>
 #include <thread>
+#include <boost/asio.hpp>
 
 #include "apiclient.hpp"
 #include "apiclient_utils.hpp"
 #include "database_worker.hpp"
 #include "common/common.hpp"
+#include "location_client.hpp"
 
 
 extern std::atomic<bool> g_NeedStop;
 
 
 DatabaseWorker::DatabaseWorker(db::type_t type,  size_t workers) :
-    m_Workers(workers)
+        m_Workers(workers)
 {
     if (type == db::type_t::MEMORY)
     {
@@ -32,108 +34,108 @@ void DatabaseWorker::putTask(db::Task &&task)
 namespace
 {
 
-db::User lookup_check_pass(const db::Task &task, AbstractConnection *conn)
-{
-    db::User user = conn->lookupUserById(task.request.uid);
-    if (user.id == 0)
+    db::User lookup_check_pass(const db::Task &task, AbstractConnection *conn)
     {
-        task.client->sendErrorResponse(409, common::ApiStatusCode::ERR_CONSTRAINT, "user does not exist");
-        return {};
-    }
-
-    std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
-    if (encrypted_pass != user.password)
-    {
-        task.client->sendErrorResponse(403, common::ApiStatusCode::ERR_CONSTRAINT, "wrong password");
-        return {};
-    }
-    return user;
-}
-
-db::User lookup_check_pass_by_name(const std::string &name, const db::Task &task, AbstractConnection *conn, bool check_pass)
-{
-    std::vector<db::User> users = conn->lookupUserByName(name);
-    if (users.size() != 1)
-    {
-        if (users.empty())
+        db::User user = conn->lookupUserById(task.request.uid);
+        if (user.id == 0)
         {
-            // 401 ?
-            task.client->sendErrorResponse(404, common::ApiStatusCode::ERR_NOT_FOUND, "user does not exist");
+            task.client->sendErrorResponse(409, common::ApiStatusCode::ERR_CONSTRAINT, "user does not exist");
             return {};
         }
-        task.client->sendErrorResponse(500, common::ApiStatusCode::ERR_INTERNAL, "more than one user with that name");
-        return {};
-    }
 
-    const db::User &user = users[0];
-
-    if (check_pass)
-    {
         std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
         if (encrypted_pass != user.password)
         {
             task.client->sendErrorResponse(403, common::ApiStatusCode::ERR_CONSTRAINT, "wrong password");
             return {};
         }
+        return user;
     }
-    
-    return user;
-}
 
-std::vector<apiclient_utils::Message> to_api_format(std::vector<std::vector<db::Message>> &&msgs_batch, AbstractConnection *conn)
-{
-    std::vector<apiclient_utils::Message> ret;
-
-    for (const auto &msgs : msgs_batch)
+    db::User lookup_check_pass_by_name(const std::string &name, const db::Task &task, AbstractConnection *conn, bool check_pass)
     {
+        std::vector<db::User> users = conn->lookupUserByName(name);
+        if (users.size() != 1)
+        {
+            if (users.empty())
+            {
+                // 401 ?
+                task.client->sendErrorResponse(404, common::ApiStatusCode::ERR_NOT_FOUND, "user does not exist");
+                return {};
+            }
+            task.client->sendErrorResponse(500, common::ApiStatusCode::ERR_INTERNAL, "more than one user with that name");
+            return {};
+        }
+
+        const db::User &user = users[0];
+
+        if (check_pass)
+        {
+            std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
+            if (encrypted_pass != user.password)
+            {
+                task.client->sendErrorResponse(403, common::ApiStatusCode::ERR_CONSTRAINT, "wrong password");
+                return {};
+            }
+        }
+
+        return user;
+    }
+
+    std::vector<apiclient_utils::Message> to_api_format(std::vector<std::vector<db::Message>> &&msgs_batch, AbstractConnection *conn)
+    {
+        std::vector<apiclient_utils::Message> ret;
+
+        for (const auto &msgs : msgs_batch)
+        {
+            for (const auto &msg : msgs)
+            {
+                db::Chat chat = conn->lookupChatById(msg.chat_to);
+                db::User user = conn->lookupUserById(msg.user_from);
+                ret.emplace_back(apiclient_utils::Message(msg.ts, /*from*/user.name, /*to*/chat.name, msg.message));
+            }
+        }
+
+        return ret;
+    }
+
+    std::vector<apiclient_utils::Message> to_api_format(std::vector<db::Message> &&msgs, AbstractConnection *conn)
+    {
+        std::vector<apiclient_utils::Message> ret;
+
         for (const auto &msg : msgs)
         {
             db::Chat chat = conn->lookupChatById(msg.chat_to);
             db::User user = conn->lookupUserById(msg.user_from);
             ret.emplace_back(apiclient_utils::Message(msg.ts, /*from*/user.name, /*to*/chat.name, msg.message));
         }
+
+        return ret;
     }
 
-    return ret;
-}
-
-std::vector<apiclient_utils::Message> to_api_format(std::vector<db::Message> &&msgs, AbstractConnection *conn)
-{
-    std::vector<apiclient_utils::Message> ret;
-
-    for (const auto &msg : msgs)
+    std::vector<db::Message> mix_from_and_to_messages(std::vector<db::Message> &&from, std::vector<db::Message> &&to, uint64_t max)
     {
-        db::Chat chat = conn->lookupChatById(msg.chat_to);
-        db::User user = conn->lookupUserById(msg.user_from);
-        ret.emplace_back(apiclient_utils::Message(msg.ts, /*from*/user.name, /*to*/chat.name, msg.message));
+        std::vector<db::Message> tmp;
+        tmp.reserve(from.size() + to.size());
+        tmp.insert(tmp.end(), std::make_move_iterator(from.begin()), std::make_move_iterator(from.end()));
+        tmp.insert(tmp.end(), std::make_move_iterator(to.begin()), std::make_move_iterator(to.end()));
+
+        std::sort(tmp.begin(), tmp.end(), [](const db::Message &msg1, const db::Message &msg2)
+        {
+            return msg1.ts > msg2.ts;
+        });
+
+        if (tmp.size() <= max)
+        {
+            return tmp;
+        }
+
+        std::vector<db::Message>::const_iterator first = tmp.begin();
+        std::vector<db::Message>::const_iterator last = tmp.begin() + max;
+        std::vector<db::Message> ret(first, last);
+
+        return ret;
     }
-
-    return ret;
-}
-
-std::vector<db::Message> mix_from_and_to_messages(std::vector<db::Message> &&from, std::vector<db::Message> &&to, uint64_t max)
-{
-    std::vector<db::Message> tmp;
-    tmp.reserve(from.size() + to.size());
-    tmp.insert(tmp.end(), std::make_move_iterator(from.begin()), std::make_move_iterator(from.end()));
-    tmp.insert(tmp.end(), std::make_move_iterator(to.begin()), std::make_move_iterator(to.end()));
-
-    std::sort(tmp.begin(), tmp.end(), [](const db::Message &msg1, const db::Message &msg2)
-            {
-                return msg1.ts > msg2.ts;
-            });
-
-    if (tmp.size() <= max)
-    {
-        return tmp;
-    }
-
-    std::vector<db::Message>::const_iterator first = tmp.begin();
-    std::vector<db::Message>::const_iterator last = tmp.begin() + max;
-    std::vector<db::Message> ret(first, last);
-
-    return ret;
-}
 
 }   // namespace
 
@@ -229,7 +231,7 @@ void DatabaseWorker::processQueue()
                 }
                 return false;
             };
-            
+
             db::get_msg_opt_t opt;
             opt.max_count = task.request.count * 2; // dirty hack :)
             std::vector<db::Message> msgs_to = conn->selectMessages(std::move(f1), opt);
@@ -279,7 +281,7 @@ void DatabaseWorker::processQueue()
         else if (task.cmd == common::cmd_t::USER_CREATE)
         {
             std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
-            db::User user = conn->createUser(task.request.user, task.request.ip_address, encrypted_pass, task.storage);
+            db::User user = conn->createUser(task.request.user, encrypted_pass, task.storage, task.request.ip_address, task.request.city);
             if (user.id == 0)
             {
                 task.client->sendErrorResponse(409, common::ApiStatusCode::ERR_CONSTRAINT, "user already exists");
@@ -369,7 +371,7 @@ void DatabaseWorker::processQueue()
             loge("get locations");
             // дальше код
             // (если нужно что-то поменять иди в apiclient.cpp parse_meta)
-            // доступ к айпи: task.request.ip_adress;
+            // доступ к айпи: task.request.ip_address;
 
             task.client->sendOkResponse("{\"status\": 0}");
         }
@@ -399,4 +401,3 @@ void DatabaseWorker::join()
         thread.join();
     }
 }
-
