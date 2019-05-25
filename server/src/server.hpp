@@ -6,19 +6,22 @@
 #include "net/client.hpp"
 #include "database_worker.hpp"
 #include "common/io_thread.hpp"
+#include "location_client.hpp"
 
 
-class Server: private boost::noncopyable
-{
+class Server : private boost::noncopyable {
 public:
     Server(int port, int io_thread_pool_size);
+
     ~Server();
 
     void run();
 
 private:
     void startAccept();
+
     void handleStop();
+
     void handleHUP();
 
     void loop();
@@ -26,8 +29,9 @@ private:
 private:
     int m_IoPoolSize;
 
-    std::unique_ptr<IoThread> m_MainIo;
-    std::vector<std::unique_ptr<IoThread>> m_IoThreads;
+    std::unique_ptr <IoThread> m_MainIo;
+    std::vector <std::unique_ptr<IoThread>> m_IoThreads;
+    std::unique_ptr<LocationClient> m_LocationClient;
 
     boost::asio::signal_set m_Signals;
     boost::asio::signal_set m_HupSignals;

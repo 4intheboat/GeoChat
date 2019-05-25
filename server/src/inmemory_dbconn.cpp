@@ -33,8 +33,10 @@ db::User InMemoryConnection::createUser(const std::string &name, const std::stri
     commit
 */
 {
-    std::lock_guard<std::mutex> lock(m_Mutex);
 
+
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    std::cout << ip << std::endl;
     for (const auto &user : m_Storage.users)
     {
         if (user.name == name)
@@ -45,13 +47,6 @@ db::User InMemoryConnection::createUser(const std::string &name, const std::stri
 
     uint64_t chat_id = m_Storage.chat_autoincrement++;
     uint64_t user_id = m_Storage.user_autoincrement++;
-
-    boost::asio::io_service io;
-    LocationClient location_client(io);
-    location_client.connect_to_api();
-//    std::string ip = "91.192.20.94";
-
-    std::string address = location_client.get_city_by_ip(ip);
 
     m_Storage.chats.emplace_back(db::Chat(chat_id, name));
     db::User user(user_id, chat_id, name, pass, stpath);

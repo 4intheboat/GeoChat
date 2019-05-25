@@ -145,7 +145,7 @@ std::string parse_meta(RequestDetails &details,
             return fatal_error;
         }
         details.params.user = it->value.GetString();
- 
+
         if (command == common::cmd_t::USER_CREATE)
         {
             int min_len = libproperty::Options::impl()->get<int>("pass_len");
@@ -164,7 +164,7 @@ std::string parse_meta(RequestDetails &details,
     }
 
     {
-        // self id required 
+        // self id required
         std::string fatal_error;
         auto it = find_required_uint_param(document, "uid", fatal_error);
         if (!fatal_error.empty())
@@ -212,7 +212,7 @@ std::string parse_meta(RequestDetails &details,
         }
         return "";
     }
-    
+
     if (   command == common::cmd_t::USER_HISTORY
         || command == common::cmd_t::USER_STATUS
         )
@@ -225,7 +225,7 @@ std::string parse_meta(RequestDetails &details,
             return fatal_error;
         }
         details.params.user = it->value.GetString();
-        
+
         it = find_required_uint_param(document, "count", fatal_error);
         if (fatal_error.empty())
         {
@@ -233,7 +233,7 @@ std::string parse_meta(RequestDetails &details,
         }
         return "";
     }
-       
+
     if (   command == common::cmd_t::MESSAGE_SEND
         || command == common::cmd_t::MESSAGE_SEND_CHAT
         )
@@ -272,23 +272,10 @@ std::string parse_meta(RequestDetails &details,
     }
     if (command == common::cmd_t::GET_LOCATIONS)
     {
-        loge("parse meta get_locations");
-        //дальше код для гет локейшнс, разбор параметров и все такое
-        // тут ничего не надо, но возможно стоит определеить айпи!
-        details.params.ip_adress = details.remote_address;
+        details.params.ip_address = details.remote_address;
     }
     if (command == common::cmd_t::CHAT_WITH_LOCATION)
     {
-        loge("parse meta chat_with_location");
-        //дальше код
-        std::string fatal_error;
-        auto it = find_required_string_param(document, "country", fatal_error);
-        if (!fatal_error.empty())
-        {
-            f::loge("[{0}] parse meta: {1}", details.sessid, fatal_error);
-            return fatal_error;
-        }
-        details.params.country = it->value.GetString();
     }
 
     return "";
@@ -327,10 +314,11 @@ std::string build_api_error_rsponse(int http_code, common::ApiStatusCode api_cod
 }   // namespace
 
 
-ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db) :
+ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::unique_ptr<LocationClient> &location_client) :
     m_HttpCode(200),
     m_StoragePollingIntervalMs(200),
     m_Timer(socket->ioService()),
+    m_LocationClient(std::move(location_client)),
     m_Db(db)
 {
     m_Client = boost::make_shared<AsyncHttpClient>(socket);
@@ -543,10 +531,11 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     m_RequestDetails.remote_address = m_Client->remoteAddr();
     m_RequestDetails.resource = utils::lowercased(reply._resource);
     m_RequestDetails.method = reply._method;
+    m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
 
     logd3(reply._headers);
+    logd4("city: ", m_RequestDetails.params.city);
     logd4("body: ", reply._body);
-    loge("we here trying to check resourse");
 
     if (m_RequestDetails.resource == "/v1/idle")
     {
