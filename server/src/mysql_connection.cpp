@@ -46,7 +46,7 @@ void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
 db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath,
                                      const std::string& ip, const std::string& city) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    std::cout << "createUser" << std::endl;
+    o2logger::logi("createUser");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT 1 FROM user WHERE name=?"));
@@ -119,7 +119,7 @@ db::Chat MysqlConnection::createChat(const std::string& name, uint64_t uid) {
 std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name) const {
     std::vector<db::User> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    std::cout << "lookupUserByName" << std::endl;
+    o2logger::logi("lookupUserByName");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "

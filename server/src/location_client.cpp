@@ -45,10 +45,12 @@ void LocationClient::make_request(boost::asio::streambuf &request, const std::st
 }
 
 void LocationClient::connect(const std::string &host, const std::string &port) {
+    std::cout << "connect to API" << std::endl;
     boost::system::error_code ec;
     tcp::resolver::query query(host, port);
     auto endpoints = _resolver->resolve(query, ec);
     if (ec) {
+	std::cout << ec.message() << std::endl;
         o2logger::loge(ec.message());
     } else {
         boost::asio::connect((*_socket), endpoints);
@@ -84,6 +86,7 @@ void LocationClient::get_document_value(rapidjson::Document &json_document, rapi
 }
 
 const std::string LocationClient::get_city_by_ip(const std::string &ip) {
+    std::cout << "get_city_by_ip" << std::endl;
     this->connect_to_api();
     std::cout << "Connected to API." << std::endl;
     boost::asio::streambuf request;
