@@ -155,3 +155,20 @@ fabric.properties
 .idea/sonarlint
 
 # End of https://www.gitignore.io/api/c,c++,clion
+
+.idea/
+client/src/.*
+client/src/BUILD/
+server/src/.*
+server/src/BUILD/
+tests/.*
+tests/src/.*
+tests/BUILD/
+tests/src/BUILD/
+third_party/libproperty/.*
+third_party/libproperty/src/.*
+third_party/libproperty/src/BUILD/
+third_party/libproperty/t/.*
+third_party/libproperty/t/build/
+third_party/o2logger/src/.*
+third_party/o2logger/src/BUILD/

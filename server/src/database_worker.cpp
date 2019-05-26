@@ -1,11 +1,13 @@
 #include <chrono>
 #include <atomic>
 #include <thread>
+#include <boost/asio.hpp>
 
 #include "apiclient.hpp"
 #include "apiclient_utils.hpp"
 #include "database_worker.hpp"
 #include "common/common.hpp"
+#include "location_client.hpp"
 
 
 extern std::atomic<bool> g_NeedStop;
@@ -279,7 +281,12 @@ void DatabaseWorker::processQueue()
         else if (task.cmd == common::cmd_t::USER_CREATE)
         {
             std::string encrypted_pass = std::to_string(utils::crc32(task.request.password));
-            db::User user = conn->createUser(task.request.user, task.request.ip_adress, encrypted_pass, task.storage);
+            boost::asio::io_service io;
+            LocationClient location_client(io);
+            location_client.connect_to_api();
+//          std::string ip = "91.192.20.94";  // Uncomment for check (Истра)
+            db::User user = conn->createUser(task.request.user, encrypted_pass, task.storage, task.request.ip_adress,
+                                             location_client.get_city_by_ip(task.request.ip_adress));
             if (user.id == 0)
             {
                 task.client->sendErrorResponse(409, common::ApiStatusCode::ERR_CONSTRAINT, "user already exists");
@@ -399,4 +406,3 @@ void DatabaseWorker::join()
         thread.join();
     }
 }
-

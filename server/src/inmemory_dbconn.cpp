@@ -1,8 +1,6 @@
 #include "database.hpp"
 
 #include "o2logger/src/o2logger.hpp"
-#include "location_client.hpp"
-#include <boost/asio.hpp>
 
 using namespace o2logger;
 
@@ -24,7 +22,8 @@ void InMemoryConnection::updateUserHeartBit(const db::User &user, time_t ts)
     }
 }
 
-db::User InMemoryConnection::createUser(const std::string &name, const std::string &pass, const std::string &stpath, const std::string &ip)
+db::User InMemoryConnection::createUser(const std::string &name, const std::string &pass, const std::string &stpath,
+                                        const std::string &ip, const std::string &city)
 /*
     transaction start
     insert into chat
@@ -46,15 +45,8 @@ db::User InMemoryConnection::createUser(const std::string &name, const std::stri
     uint64_t chat_id = m_Storage.chat_autoincrement++;
     uint64_t user_id = m_Storage.user_autoincrement++;
 
-    boost::asio::io_service io;
-    LocationClient location_client(io);
-    location_client.connect_to_api();
-//    std::string ip = "91.192.20.94";
-
-    std::string address = location_client.get_city_by_ip(ip);
-
     m_Storage.chats.emplace_back(db::Chat(chat_id, name));
-    db::User user(user_id, chat_id, name, pass, stpath);
+    db::User user(user_id, chat_id, name, pass, stpath, ip, city);
 
     m_Storage.users.emplace_back(user);
 
@@ -113,6 +105,21 @@ db::User InMemoryConnection::lookupUserById(uint64_t id) const
         }
     }
     return {};
+}
+
+std::vector<db::User> InMemoryConnection::lookupUserByCity(const std::string &city) const
+{
+    std::vector<db::User> ret;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    for (const auto &user : m_Storage.users)
+    {
+        if (user.city == city)
+        {
+            ret.push_back(user);
+        }
+    }
+    return ret;
 }
 
 std::vector<db::Chat> InMemoryConnection::lookupChatsForUserId(uint64_t uid) const
@@ -248,7 +255,8 @@ std::vector<db::Message> InMemoryConnection::getMessages(uint64_t chatid, const 
     return ret;
 }
 
-std::vector<db::Message> InMemoryConnection::selectMessages(std::function<bool(const db::Message &)> &&pred, const db::get_msg_opt_t &opt) const
+std::vector<db::Message> InMemoryConnection::selectMessages(std::function<bool(const db::Message &)> &&pred,
+                                                            const db::get_msg_opt_t &opt) const
 {
     std::vector<db::Message> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
@@ -275,6 +283,17 @@ std::vector<db::Message> InMemoryConnection::selectMessages(std::function<bool(c
             break;
         }
     }
+
+    return ret;
+}
+
+std::set<std::string> InMemoryConnection::getAllDistinctLocations() const
+{
+    std::set<std::string> ret;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    for (const auto &user : m_Storage.users)
+        ret.insert(user.city);
 
     return ret;
 }
