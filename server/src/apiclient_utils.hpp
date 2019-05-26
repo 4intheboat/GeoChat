@@ -34,6 +34,8 @@ std::string build_api_ok_response_body(const db::User &user);
 std::string build_api_ok_response_body(const db::Chat &chat);
 std::string build_api_ok_response_body(std::vector<apiclient_utils::Message> &&msgs);
 
+std::string build_api_ok_response_body(std::set<std::string> locations);
+
 
 
 void log_task_done(const std::string &error,

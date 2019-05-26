@@ -373,7 +373,23 @@ void DatabaseWorker::processQueue()
             // (если нужно что-то поменять иди в apiclient.cpp parse_meta)
             // доступ к айпи: task.request.ip_address;
 
-            task.client->sendOkResponse("{\"status\": 0}");
+            db::User user = lookup_check_pass(task, conn.get());
+            if (user.id == 0)
+            {
+                continue;
+            }
+
+            std::set<std::string> locations = conn->getAllDistinctLocations();
+
+            if (locations.empty())
+            {
+                task.client->sendErrorResponse(404, common::ApiStatusCode::ERR_NOT_FOUND, "no locations");
+                continue;
+            }
+
+            std::string body = apiclient_utils::build_api_ok_response_body(locations);
+            loge(body);
+            task.client->sendOkResponse(body);
         }
         else if (task.cmd == common::cmd_t::CHAT_WITH_LOCATION)
         {

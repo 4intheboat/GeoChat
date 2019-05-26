@@ -144,6 +144,33 @@ std::string build_api_ok_response_body(std::vector<apiclient_utils::Message> &&m
     return std::string(buffer.GetString(), buffer.GetSize());
 }
 
+std::string build_api_ok_response_body(std::set<std::string> locations)
+{
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    writer.StartObject();
+
+    writer.Key("server_ts");
+    writer.Uint64(time(NULL));
+
+    writer.Key("locations");
+    writer.StartArray();
+    for (const auto &loc: locations)
+    {
+         writer.StartObject();
+
+         writer.Key("location");
+         writer.String(loc.data());
+
+         writer.Key("status");
+         writer.Bool(true);
+    }
+    writer.EndArray();
+
+    writer.EndObject();
+    return std::string(buffer.GetString(), buffer.GetSize());
+}
 
 void log_task_done(const std::string &error,
                    const std::string &sessid,
