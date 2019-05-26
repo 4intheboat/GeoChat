@@ -63,7 +63,7 @@ db::User MysqlConnection::createUser(const std::string& name, const std::string&
 
         pstmt.reset(m_Connection->prepareStatement(
                 "INSERT INTO user(self_chat_id, name, password, stpath, heartbit, ip, city) "
-                "VALUES(?, ?, ?, ?, FROM_UNIXTIME(0), ?, ?)"));
+                "VALUES(?, ?, ?, ?, NOW(), ?, ?)"));
         pstmt->setUInt64(1, chatId);
         pstmt->setString(2, name);
         pstmt->setString(3, pass);
