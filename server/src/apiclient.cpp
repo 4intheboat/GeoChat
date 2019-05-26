@@ -531,11 +531,12 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     m_RequestDetails.remote_address = m_Client->remoteAddr();
     m_RequestDetails.resource = utils::lowercased(reply._resource);
     m_RequestDetails.method = reply._method;
+    
     m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
 
-    logd3(reply._headers);
-    logd4("city: ", m_RequestDetails.params.city);
-    logd4("body: ", reply._body);
+    f::logd3(reply._headers);
+    f::logd4("city: ", m_RequestDetails.params.city);
+    f::logd4("body: ", reply._body);
 
     if (m_RequestDetails.resource == "/v1/idle")
     {

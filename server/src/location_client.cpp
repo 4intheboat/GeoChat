@@ -85,6 +85,7 @@ void LocationClient::get_document_value(rapidjson::Document &json_document, rapi
 
 const std::string LocationClient::get_city_by_ip(const std::string &ip) {
     this->connect_to_api();
+    std::cout << "Connected to API." << std::endl;
     boost::asio::streambuf request;
     LocationClient::make_request(request, ip, _api_key);
     send(request);
