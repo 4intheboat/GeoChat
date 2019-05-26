@@ -46,7 +46,7 @@ void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
 db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath,
                                      const std::string& ip, const std::string& city) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("createUser");
+    std::cout << "createUser" << std::endl;
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT 1 FROM user WHERE name=?"));
@@ -119,14 +119,14 @@ db::Chat MysqlConnection::createChat(const std::string& name, uint64_t uid) {
 std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name) const {
     std::vector<db::User> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupUserByName");
+    std::cout << "lookupUserByName" << std::endl;
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
                 "FROM user WHERE name=?"));
         pstmt->setString(1, name);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-
+	std::cout << "cycle" << std::endl;
         while (res->next()) {
             ret.push_back(db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
                                    res->getString("password"), res->getString("stpath"), res->getString("ip"),
@@ -135,6 +135,7 @@ std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name)
     } catch (sql::SQLException& e) {
         outputError(e);
     }
+std::cout << "cycle ended" << std::endl;
     return ret;
 }
 
