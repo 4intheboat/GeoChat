@@ -32,8 +32,10 @@ db::User InMemoryConnection::createUser(const std::string &name, const std::stri
     commit
 */
 {
-    std::lock_guard<std::mutex> lock(m_Mutex);
 
+
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    std::cout << ip << std::endl;
     for (const auto &user : m_Storage.users)
     {
         if (user.name == name)

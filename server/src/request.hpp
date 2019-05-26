@@ -22,9 +22,10 @@ struct RequestDetails
         std::string user;           // lookup user by name
         std::string password;
 
-        std::string country; //location
 
-        std::string ip_adress;
+        std::string ip_address;
+
+        std::string city;
 
         struct chat
         {

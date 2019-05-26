@@ -5,7 +5,6 @@
 #include <vector>
 #include <set>
 #include <boost/shared_ptr.hpp>
-#include "mysql_connection.h"
 #include <cppconn/driver.h>
 #include <cppconn/exception.h>
 #include <cppconn/statement.h>

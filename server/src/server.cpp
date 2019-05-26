@@ -21,6 +21,10 @@
 #include "common/sysutils.hpp"
 
 #include "o2logger/src/o2logger.hpp"
+
+#include <boost/asio.hpp>
+#include "location_client.hpp"
+
 using namespace o2logger;
 
 
@@ -28,18 +32,17 @@ std::atomic<bool> g_NeedStop(false);
 
 
 Server::Server(int port, int io_thread_pool_size) :
-    m_IoPoolSize(io_thread_pool_size),
-    m_MainIo(std::make_unique<IoThread>(libproperty::Options::impl()->get<std::string>("sert"))),
-    m_Signals(m_MainIo->ioService()),
-    m_HupSignals(m_MainIo->ioService()),
-    m_Acceptor(m_MainIo->ioService()),
-    m_Db(db::type_t::MYSQL, 5)
-{
+        m_IoPoolSize(io_thread_pool_size),
+        m_MainIo(std::make_unique<IoThread>(libproperty::Options::impl()->get<std::string>("sert"))),
+        m_Signals(m_MainIo->ioService()),
+        m_HupSignals(m_MainIo->ioService()),
+        m_Acceptor(m_MainIo->ioService()),
+        m_Db(db::type_t::MYSQL, 5) {
+    m_LocationClient = std::make_unique<LocationClient>();
     m_Signals.add(SIGINT);
     m_Signals.add(SIGTERM);
     m_Signals.add(SIGQUIT);
     m_Signals.async_wait(std::bind(&Server::handleStop, this));
-
     m_HupSignals.add(SIGHUP);
     m_HupSignals.async_wait(std::bind(&Server::handleHUP, this));
 
@@ -52,24 +55,20 @@ Server::Server(int port, int io_thread_pool_size) :
     m_Acceptor.listen(2048);
 }
 
-Server::~Server()
-{
+Server::~Server() {
 }
 
-void Server::handleStop()
-{
+void Server::handleStop() {
     logi("stopped by signal");
     g_NeedStop = true;
     m_MainIo->ioService().stop();
 
-    for (const auto &thread : m_IoThreads)
-    {
+    for (const auto &thread : m_IoThreads) {
         thread->stop();
     }
 }
 
-void Server::handleHUP()
-{
+void Server::handleHUP() {
     logi("sighup ignored");
 
     // TODO:
@@ -77,13 +76,12 @@ void Server::handleHUP()
     m_HupSignals.async_wait(std::bind(&Server::handleHUP, this));
 }
 
-void Server::run()
-{
+void Server::run() {
+
     m_MainIo->start();
 
     m_IoThreads.clear();
-    for (size_t i = 0; i < m_IoPoolSize; ++i)
-    {
+    for (size_t i = 0; i < m_IoPoolSize; ++i) {
         m_IoThreads.push_back(std::make_unique<IoThread>(libproperty::Options::impl()->get<std::string>("sert")));
         m_IoThreads.back()->start();
     }
@@ -98,28 +96,23 @@ void Server::run()
 
     m_Db.join();
     m_MainIo->join();
-    for (const auto &thread : m_IoThreads)
-    {
+    for (const auto &thread : m_IoThreads) {
         thread->join();
     }
 }
 
-void Server::startAccept()
-{
+void Server::startAccept() {
     static unsigned int seedp = 42;
     auto &io_thread = m_IoThreads.at(rand_r(&seedp) % m_IoThreads.size());
-    boost::shared_ptr<TcpClient> socket = boost::make_shared<TcpClient>(
-        io_thread->ioService(), io_thread->sslContext());
+    boost::shared_ptr <TcpClient> socket = boost::make_shared<TcpClient>(
+            io_thread->ioService(), io_thread->sslContext());
 
-    auto handler = [this, socket](const boost::system::error_code &e)
-    {
-        if (!e)
-        {
+    auto handler = [this, socket](const boost::system::error_code &e) {
+        if (!e) {
             boost::system::error_code tmp;
             socket->makeConnected(tmp);
-            if (!tmp)
-            {
-                boost::shared_ptr<ApiClient> c = boost::make_shared<ApiClient>(socket, m_Db);
+            if (!tmp) {
+                boost::shared_ptr <ApiClient> c = boost::make_shared<ApiClient>(socket, m_Db, m_LocationClient);
                 c->serveSslClient();
             }
         }
