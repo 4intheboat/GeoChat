@@ -532,7 +532,7 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     m_RequestDetails.resource = utils::lowercased(reply._resource);
     m_RequestDetails.method = reply._method;
     
-    m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
+    
 
     f::logd3(reply._headers);
     f::logd4("city: ", m_RequestDetails.params.city);
@@ -567,6 +567,7 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     }
     else if (m_RequestDetails.resource == "/v1/user/create")
     {
+	m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
         v1_handler(reply, common::cmd_t::USER_CREATE);
     }
     else if (m_RequestDetails.resource == "/v1/chat/create")
