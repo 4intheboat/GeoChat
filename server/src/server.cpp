@@ -38,7 +38,7 @@ Server::Server(int port, int io_thread_pool_size) :
         m_HupSignals(m_MainIo->ioService()),
         m_Acceptor(m_MainIo->ioService()),
         m_Db(db::type_t::MYSQL, 5) {
-    m_LocationClient = std::make_unique<LocationClient>();
+    m_LocationClient = std::make_shared<LocationClient>();
     m_Signals.add(SIGINT);
     m_Signals.add(SIGTERM);
     m_Signals.add(SIGQUIT);

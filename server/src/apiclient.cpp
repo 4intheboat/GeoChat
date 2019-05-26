@@ -314,7 +314,7 @@ std::string build_api_error_rsponse(int http_code, common::ApiStatusCode api_cod
 }   // namespace
 
 
-ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::unique_ptr<LocationClient> &location_client) :
+ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::shared_ptr<LocationClient> location_client) :
     m_HttpCode(200),
     m_StoragePollingIntervalMs(200),
     m_Timer(socket->ioService()),

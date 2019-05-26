@@ -31,7 +31,7 @@ private:
 
     std::unique_ptr <IoThread> m_MainIo;
     std::vector <std::unique_ptr<IoThread>> m_IoThreads;
-    std::unique_ptr<LocationClient> m_LocationClient;
+    std::shared_ptr<LocationClient> m_LocationClient;
 
     boost::asio::signal_set m_Signals;
     boost::asio::signal_set m_HupSignals;
