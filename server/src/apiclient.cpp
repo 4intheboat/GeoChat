@@ -276,6 +276,16 @@ std::string parse_meta(RequestDetails &details,
     }
     if (command == common::cmd_t::CHAT_WITH_LOCATION)
     {
+        loge("parse meta chat_with_location");
+
+        std::string fatal_error;
+        auto it = find_required_string_param(document, "country", fatal_error);
+        if (!fatal_error.empty())
+        {
+            f::loge("[{0}] parse meta: {1}", details.sessid, fatal_error);
+            return fatal_error;
+        }
+        details.params.country = it->value.GetString();
     }
 
     return "";
