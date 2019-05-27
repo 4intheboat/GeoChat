@@ -270,12 +270,16 @@ std::string parse_meta(RequestDetails &details,
         }
         return "";
     }
-    if (command == common::cmd_t::GET_LOCATIONS)
-    {
-        details.params.ip_address = details.remote_address;
-    }
     if (command == common::cmd_t::CHAT_WITH_LOCATION)
     {
+        std::string fatal_error;
+        auto it = find_required_string_param(document, "city", fatal_error);
+        if (!fatal_error.empty())
+        {
+            f::logd4("[{0}] parse meta: {1}", details.sessid, fatal_error);
+            return fatal_error;
+        }
+        details.params.city = it->value.GetString();
     }
 
     return "";
@@ -314,7 +318,7 @@ std::string build_api_error_rsponse(int http_code, common::ApiStatusCode api_cod
 }   // namespace
 
 
-ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::unique_ptr<LocationClient> &location_client) :
+ApiClient::ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::shared_ptr<LocationClient> location_client) :
     m_HttpCode(200),
     m_StoragePollingIntervalMs(200),
     m_Timer(socket->ioService()),
@@ -531,11 +535,12 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     m_RequestDetails.remote_address = m_Client->remoteAddr();
     m_RequestDetails.resource = utils::lowercased(reply._resource);
     m_RequestDetails.method = reply._method;
-    m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
+    
+    
 
-    logd3(reply._headers);
-    logd4("city: ", m_RequestDetails.params.city);
-    logd4("body: ", reply._body);
+    f::logd3(reply._headers);
+    f::logd4("city: ", m_RequestDetails.params.city);
+    f::logd4("body: ", reply._body);
 
     if (m_RequestDetails.resource == "/v1/idle")
     {
@@ -566,6 +571,7 @@ void ApiClient::requestFromClientReadHandler(const ConnectionError &error, const
     }
     else if (m_RequestDetails.resource == "/v1/user/create")
     {
+	m_RequestDetails.params.city = m_LocationClient->get_city_by_ip(m_RequestDetails.remote_address);
         v1_handler(reply, common::cmd_t::USER_CREATE);
     }
     else if (m_RequestDetails.resource == "/v1/chat/create")

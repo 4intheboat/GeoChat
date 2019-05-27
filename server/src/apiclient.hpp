@@ -18,7 +18,7 @@
 class ApiClient: public boost::enable_shared_from_this<ApiClient>, private boost::noncopyable
 {
 public:
-    ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::unique_ptr<LocationClient> &location_client);
+    ApiClient(boost::shared_ptr<TcpClient> socket, DatabaseWorker &db, std::shared_ptr<LocationClient> location_client);
     ~ApiClient();
 
     void serveSslClient();
@@ -61,6 +61,6 @@ private:
     boost::asio::steady_timer m_Timer;
 
     std::chrono::time_point<std::chrono::steady_clock> m_Start;
-    std::unique_ptr<LocationClient> m_LocationClient;
+    std::shared_ptr<LocationClient> m_LocationClient;
     DatabaseWorker &m_Db;
 };

@@ -311,7 +311,6 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
     if (m_LastCmd == input::cmd_t::LOGIN)
     {
         cli_utils::response_t resp;
-        loge(reply._body);
         std::string err = cli_utils::parse_response_aswer(m_LastCmd, reply._body, resp);
         if (!err.empty())
         {
@@ -354,7 +353,7 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
     else if (m_LastCmd == input::cmd_t::STATUS_USER)
     {
         cli_utils::response_t resp;
-        loge(reply._body);
+        
         std::string err = cli_utils::parse_response_aswer(m_LastCmd, reply._body, resp);
         if (!err.empty())
         {
@@ -374,13 +373,13 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
         }
         else
         {
-            m_Ui->showMsg("user was online at about " + std::to_string(last_online) + " sceonds ago");
+            m_Ui->showMsg("user was online at about " + std::to_string(last_online) + " seconds ago");
         }
     }
     else if (m_LastCmd == input::cmd_t::GET_LOCATIONS)
     {
         cli_utils::loc_response_t resp;
-        loge(reply._body);
+        
         std::string err = cli_utils::parse_location_response(m_LastCmd, reply._body, resp);
         if (!err.empty())
         {
@@ -389,10 +388,7 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
         }
         for (auto i = 0; i < resp.locations.size(); i++)
         {
-            std::string status = "offline";
-            if (resp.status[i])
-                status = "online";
-            m_Ui->showMsg("location: "+resp.locations[i] + " status: " + status);
+            m_Ui->showMsg("location: "+resp.locations[i]);
         }
 
 
@@ -400,7 +396,7 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
     else if (m_LastCmd == input::cmd_t::CHAT_WITH_LOCATION)
     {
         cli_utils::chat_loc_response_t resp;
-        loge(reply._body);
+        
         std::string err = cli_utils::parse_chat_loc_response(m_LastCmd, reply._body, resp);
         if (!err.empty())
         {
@@ -409,10 +405,7 @@ void Client::onHttpRead(const ConnectionError &error, const HttpReply &reply)
         }
         for (auto i = 0; i < resp.users.size(); i++)
         {
-            std::string status = "offline";
-            if (resp.users[i].status)
-                status = "online";
-            m_Ui->showMsg("user: "+resp.users[i].username + " status: " + status);
+            m_Ui->showMsg("user: "+resp.users[i]);
         }
     }
 }
