@@ -20,12 +20,12 @@ void LocationClient::parse_response(rapidjson::Document &json_document, const st
 
 std::string LocationClient::get_string_value(rapidjson::Document &json_document, const std::string &key) {
     if (!json_document.HasMember(key.c_str())) {
-        std::cerr << "Json document do not have member " << key << std::endl;
+        o2logger::loge("Json document do not have member ");
         return std::string();
     }
 
     if (!json_document[key.c_str()].IsString()) {
-        std::cerr << "Json value is not a string" << std::endl;
+        o2logger::loge("Json value is not a string");
         return std::string();
     }
 
@@ -45,7 +45,6 @@ void LocationClient::make_request(boost::asio::streambuf &request, const std::st
 }
 
 void LocationClient::connect(const std::string &host, const std::string &port) {
-    std::cout << "connect to API" << std::endl;
     boost::system::error_code ec;
     tcp::resolver::query query(host, port);
     auto endpoints = _resolver->resolve(query, ec);
@@ -67,12 +66,12 @@ void LocationClient::get_document_value(rapidjson::Document &json_document, rapi
     using namespace rapidjson;
 
     if (!json_document.HasMember(key.c_str())) {
-        o2logger::loge("Json document do not have member " + key);
+        o2logger::loge("Json document do not have member." + key);
         return;
     }
 
     if (!json_document[key.c_str()].IsObject()) {
-        o2logger::loge("Json value can not be transform to subquery");
+        o2logger::loge("Json value can not be transform to subquery.");
         return;
     }
     StringBuffer buffer;
@@ -86,9 +85,7 @@ void LocationClient::get_document_value(rapidjson::Document &json_document, rapi
 }
 
 const std::string LocationClient::get_city_by_ip(const std::string &ip) {
-    std::cout << "get_city_by_ip" << std::endl;
     this->connect_to_api();
-    std::cout << "Connected to API." << std::endl;
     boost::asio::streambuf request;
     LocationClient::make_request(request, ip, _api_key);
     send(request);

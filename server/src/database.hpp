@@ -142,6 +142,7 @@ public:
                                                     const db::get_msg_opt_t &opt) const = 0;
 
     virtual std::set<std::string> getAllDistinctLocations() const = 0;
+    virtual std::set<std::string> getAllUsersFromLocation(const std::string &city) const = 0;
 
 protected:
 };
@@ -173,6 +174,7 @@ public:
                                                                const db::get_msg_opt_t &opt) const override;
 
     std::set<std::string> getAllDistinctLocations() const override;
+    std::set<std::string> getAllUsersFromLocation(const std::string &city) const override;
 
 private:
     struct Storage
@@ -216,6 +218,7 @@ public:
                                             const db::get_msg_opt_t& opt) const override;
 
     std::set<std::string> getAllDistinctLocations() const override;
+    std::set<std::string> getAllUsersFromLocation(const std::string &city) const override;
 
 private:
     void outputError(sql::SQLException& e) const;

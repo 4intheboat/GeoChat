@@ -33,8 +33,7 @@ std::string build_api_ok_response_body(common::cmd_t command);
 std::string build_api_ok_response_body(const db::User &user);
 std::string build_api_ok_response_body(const db::Chat &chat);
 std::string build_api_ok_response_body(std::vector<apiclient_utils::Message> &&msgs);
-
-std::string build_api_ok_response_body(std::set<std::string> locations);
+std::string build_api_ok_response_body(std::string key, std::set<std::string> &items);
 
 
 

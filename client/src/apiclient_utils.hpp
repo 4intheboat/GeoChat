@@ -130,7 +130,6 @@ struct loc_response_t
 {
     uint64_t server_ts = 0;
     std::vector<std::string> locations;
-    std::vector<bool> status;
 };
 
 struct resp_user_t
@@ -143,7 +142,7 @@ struct resp_user_t
 struct chat_loc_response_t
 {
     uint64_t server_ts = 0;
-    std::vector<resp_user_t> users;
+    std::vector<std::string> users;
 };
 
 std::string parse_response_aswer(input::cmd_t cmd, const std::string &json, response_t &response);

@@ -144,7 +144,7 @@ std::string build_api_ok_response_body(std::vector<apiclient_utils::Message> &&m
     return std::string(buffer.GetString(), buffer.GetSize());
 }
 
-std::string build_api_ok_response_body(std::set<std::string> locations)
+std::string build_api_ok_response_body(std::string key, std::set<std::string> &items)
 {
 
     rapidjson::StringBuffer buffer;
@@ -153,21 +153,20 @@ std::string build_api_ok_response_body(std::set<std::string> locations)
 
     writer.Key("server_ts");
     writer.Uint64(time(NULL));
-
-    writer.Key("locations");
+    std::string pluralized_key = key + "s";
+    writer.Key(pluralized_key.c_str());
     writer.StartArray();
-    for (const auto &loc: locations)
+
+    for (const auto &item: items)
     {
-         writer.StartObject();
-
-         writer.Key("location");
-         writer.String(loc.data());
-
-         writer.Key("status");
-         writer.Bool(true);
+        if (item.size() > 0) {
+            writer.StartObject();
+            writer.Key(key.data());
+            writer.String(item.data());
+            writer.EndObject();
+        }
     }
     writer.EndArray();
-
     writer.EndObject();
     return std::string(buffer.GetString(), buffer.GetSize());
 }

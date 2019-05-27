@@ -23,7 +23,6 @@ struct RequestDetails
         std::string password;
 
 
-        std::string country;
         std::string ip_address;
 
         std::string city;

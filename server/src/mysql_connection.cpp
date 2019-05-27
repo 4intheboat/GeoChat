@@ -24,7 +24,7 @@ MysqlConnection::~MysqlConnection() {}
 
 void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("updateUserHeartBit");
+    o2logger::logd5("updateUserHeartBit");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "UPDATE user SET heartbit=FROM_UNIXTIME(?) WHERE id=?"));
@@ -46,7 +46,7 @@ void MysqlConnection::updateUserHeartBit(const db::User& user, time_t ts) {
 db::User MysqlConnection::createUser(const std::string& name, const std::string& pass, const std::string& stpath,
                                      const std::string& ip, const std::string& city) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("createUser");
+    o2logger::logd5("createUser");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT 1 FROM user WHERE name=?"));
@@ -87,7 +87,7 @@ db::User MysqlConnection::createUser(const std::string& name, const std::string&
 
 db::Chat MysqlConnection::createChat(const std::string& name, uint64_t uid) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("createChat");
+    o2logger::logd5("createChat");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT 1 FROM chat WHERE name=?"));
@@ -119,14 +119,13 @@ db::Chat MysqlConnection::createChat(const std::string& name, uint64_t uid) {
 std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name) const {
     std::vector<db::User> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupUserByName");
+    o2logger::logd5("lookupUserByName");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
                 "FROM user WHERE name=?"));
         pstmt->setString(1, name);
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-	std::cout << "cycle" << std::endl;
         while (res->next()) {
             ret.push_back(db::User(res->getUInt64("id"), res->getUInt64("self_chat_id"), res->getString("name"),
                                    res->getString("password"), res->getString("stpath"), res->getString("ip"),
@@ -135,13 +134,12 @@ std::vector<db::User> MysqlConnection::lookupUserByName(const std::string& name)
     } catch (sql::SQLException& e) {
         outputError(e);
     }
-std::cout << "cycle ended" << std::endl;
     return ret;
 }
 
 db::User MysqlConnection::lookupUserById(uint64_t id) const {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupUserById");
+    o2logger::logd5("lookupUserById");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
@@ -163,7 +161,7 @@ db::User MysqlConnection::lookupUserById(uint64_t id) const {
 std::vector<db::User> MysqlConnection::lookupUserByCity(const std::string& city) const {
     std::vector<db::User> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupUserByCity");
+    o2logger::logd5("lookupUserByCity");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT id, self_chat_id, name, password, stpath, ip, city, UNIX_TIMESTAMP(heartbit) AS unix_heartbit "
@@ -188,7 +186,7 @@ std::vector<db::Chat> MysqlConnection::lookupChatsForUserId(uint64_t uid) const 
         std::vector <uint64_t> chats;
         {
             std::lock_guard <std::mutex> lock(m_Mutex);
-            o2logger::logi("lookupChatsForUserId");
+            o2logger::logd5("lookupChatsForUserId");
             std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                     "SELECT chat_id FROM chatuser WHERE user_id=?"));
             pstmt->setUInt64(1, uid);
@@ -209,7 +207,7 @@ std::vector<db::Chat> MysqlConnection::lookupChatsForUserId(uint64_t uid) const 
 std::vector<db::Chat> MysqlConnection::lookupChatByName(const std::string& name) const {
     std::vector<db::Chat> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupChatByName");
+    o2logger::logd5("lookupChatByName");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT * FROM chat WHERE name=?"));
@@ -226,7 +224,7 @@ std::vector<db::Chat> MysqlConnection::lookupChatByName(const std::string& name)
 
 db::Chat MysqlConnection::lookupChatById(uint64_t chatid) const {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("lookupChatById");
+    o2logger::logd5("lookupChatById");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT * FROM chat WHERE id=?"));
@@ -247,7 +245,7 @@ std::vector<db::User> MysqlConnection::lookupUsersForChatId(uint64_t chatid) con
         std::vector <uint64_t> uids;
         {
             std::lock_guard <std::mutex> lock(m_Mutex);
-            o2logger::logi("lookupUsersForChatId");
+            o2logger::logd5("lookupUsersForChatId");
             std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                     "SELECT user_id FROM chatuser WHERE chat_id=?"));
             pstmt->setUInt64(1, chatid);
@@ -268,7 +266,7 @@ std::vector<db::User> MysqlConnection::lookupUsersForChatId(uint64_t chatid) con
 
 void MysqlConnection::addUserToChat(const db::Chat& chat, const db::User& user) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("addUserToChat");
+    o2logger::logd5("addUserToChat");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT * FROM chatuser WHERE user_id=? AND chat_id=?"));
@@ -290,7 +288,7 @@ void MysqlConnection::addUserToChat(const db::Chat& chat, const db::User& user) 
 
 void MysqlConnection::saveMessage(const db::Message& msg) {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("saveMessage");
+    o2logger::logd5("saveMessage");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "INSERT INTO message(user_id, chat_id, flags, time, text) VALUES(?, ?, ?, FROM_UNIXTIME(?), ?)"));
@@ -308,7 +306,7 @@ void MysqlConnection::saveMessage(const db::Message& msg) {
 std::vector<db::Message> MysqlConnection::getMessages(uint64_t chatid, const db::get_msg_opt_t& opt) const {
     std::vector<db::Message> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("getMessages");
+    o2logger::logd5("getMessages");
     try {
         // go from recent messages to oldest
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
@@ -340,7 +338,7 @@ std::vector<db::Message> MysqlConnection::selectMessages(std::function<bool(cons
                                                          const db::get_msg_opt_t& opt) const {
     std::vector<db::Message> ret;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("selectMessages");
+    o2logger::logd5("selectMessages");
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
                 "SELECT user_id, chat_id, flags, UNIX_TIMESTAMP(time) AS unix_time, text FROM message "
@@ -365,7 +363,7 @@ std::vector<db::Message> MysqlConnection::selectMessages(std::function<bool(cons
 std::set<std::string> MysqlConnection::getAllDistinctLocations() const {
     std::set<std::string> result;
     std::lock_guard<std::mutex> lock(m_Mutex);
-    o2logger::logi("getAllDistinctLocations");
+    o2logger::logd5("getAllDistinctLocations");
 
     try {
         std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
@@ -374,6 +372,26 @@ std::set<std::string> MysqlConnection::getAllDistinctLocations() const {
 
         while (res->next())
             result.insert(res->getString("city"));
+    } catch (sql::SQLException& e) {
+        outputError(e);
+    }
+    return result;
+}
+
+
+std::set<std::string> MysqlConnection::getAllUsersFromLocation(const std::string& city) const {
+    std::set<std::string> result;
+    std::lock_guard<std::mutex> lock(m_Mutex);
+    o2logger::logd5("getAllUsersFromLocation");
+
+    try {
+        std::unique_ptr<sql::PreparedStatement> pstmt(m_Connection->prepareStatement(
+                "SELECT name FROM user WHERE city =?"));
+	pstmt->setString(1, city);
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+        while (res->next())
+            result.insert(res->getString("name"));
     } catch (sql::SQLException& e) {
         outputError(e);
     }

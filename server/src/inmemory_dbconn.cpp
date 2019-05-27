@@ -299,3 +299,15 @@ std::set<std::string> InMemoryConnection::getAllDistinctLocations() const
 
     return ret;
 }
+
+std::set<std::string> InMemoryConnection::getAllUsersFromLocation(const std::string &city) const
+{
+    std::set<std::string> ret;
+    ret.insert(city);
+    std::lock_guard<std::mutex> lock(m_Mutex);
+
+    // I'm so tired. We will do it next time
+
+    return ret;
+}
+
