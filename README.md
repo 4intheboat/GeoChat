@@ -1,31 +1,23 @@
-Location-oriented encrypted chat
+## GeoChat (based on o2chat)
 
---------------how to start----------------------
+Real-time chat system, based on client-server architecture.
 
-g++-5, проверьте чтоб он у вас был, если будете собирать.
-Проверка:
->> g++ --version // не меньше 5
+---
 
-Дальше надо установить Boost.
-Для linux:
->>sudo apt-get install libboost-all-dev
->>sudo apt-get install aptitude
->>aptitude search boost
+## Description
 
-Дальше собрать:
+ - encryption with ssl
+ - scalable and high performance mode
+ - location-oriented
 
->>make Makefile
+## How to start
 
-Путь к компилятору, если он стоит в нестандартном пути, можно задать так:
-CXX=/usr/bin/g++-5 make
-
-
-А дальше, при сборку, у меня падает с непонятной ошибкой :-((((
-
-
-Запускается так:
-server:
-$ ./server/src/BUILD/chatserver --sert server.pem --port 9001
-
-client:
-$ ./client/src/BUILD/chatclient --server localhost:9001
+ - Clone this repository
+ - Install Boost
+   - libboost-all-dev 
+   - libssl-all
+ - Install mysql
+   - mysql-server 
+   - mysql-client
+ - Install MySQL - C++ adapter
+   - libmysqlcppconn-dev
